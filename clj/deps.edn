@@ -1,0 +1,9 @@
+{:deps {com.jetbrains.jsitter/jsitter {:mvn/version "0.1-SNAPSHOT"}
+        com.clojure-goes-fast/clj-async-profiler {:mvn/version "0.3.1"}
+        nrepl/nrepl {:mvn/version "0.5.3"}}
+ :aliases {:profile {:jvm-opts ["-Djdk.attach.allowAttachSelf"
+                                "-XX:+UnlockDiagnosticVMOptions"
+                                "-XX:+DebugNonSafepoints"
+                                "-XX:NativeMemoryTracking=summary"]}
+           :debug {:jvm-opts ["-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1044"]}}
+ :paths ["clj"]}

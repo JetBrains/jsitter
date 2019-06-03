@@ -1,0 +1,11 @@
+*.cbp
+.projectile
+.idea/
+.vscode/
+target/
+
+CMakeCache.txt
+cmake_install.cmake
+.DS_Store
+
+jsitter.iml
