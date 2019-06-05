@@ -1,3 +1,9 @@
 [submodule "native/tree-sitter"]
 	path = native/tree-sitter
 	url = git@github.com:tree-sitter/tree-sitter.git
+[submodule "native/grammars/tree-sitter-go"]
+	path = native/grammars/tree-sitter-go
+	url = git@github.com:tree-sitter/tree-sitter-go.git
+[submodule "native/grammars/tree-sitter-json"]
+	path = native/grammars/tree-sitter-json
+	url = git@github.com:tree-sitter/tree-sitter-json.git

@@ -26,4 +26,5 @@ include_directories(${JNI_INCLUDE_DIRS})
 
 add_library(jsitter SHARED src/java_api.cpp tree-sitter/lib/src/lib.c)
 
-
+add_library(tsjson SHARED grammars/tree-sitter-json/src/parser.c)
+add_library(tsgo SHARED grammars/tree-sitter-json/src/parser.c)
