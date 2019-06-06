@@ -15,13 +15,32 @@ interface Zipper<out T: NodeType> {
     fun copy() : Zipper<*>
 }
 
-typealias CST = Zipper<*>
+typealias CSTZ = Zipper<*>
+typealias ASTZ<T> = Zipper<T>
 
 open class NodeType(val id: String)
+open class Terminal(id: String) : NodeType(id)
+
+
+interface AST<T: NodeType> {
+    fun zipper() : ASTZ<T>
+}
+
+interface CST<T> {
+    fun zipper() : CSTZ
+}
+
+
+
+
+
+
+
+
+
 object Function : NodeType("go_function")
 object Body : NodeType("function_body")
 object Identifier: Terminal("identifier")
-open class Terminal(id: String) : NodeType(id)
 
 val <T : Terminal> Zipper<T>.text : String
     get() {
