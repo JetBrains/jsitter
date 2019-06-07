@@ -1,4 +1,7 @@
-package com.jetbrains.jsitter
+package jsitter.impl
+
+import jsitter.api.*
+import jsitter.interop.*
 
 import sun.misc.Unsafe
 import sun.nio.ch.DirectBuffer
@@ -126,8 +129,8 @@ fun ByteBuffer.address(): Ptr? =
         }
 
 class TSInput(val text: Text,
-              val readingBuffer: ByteBuffer) {
-    fun read(byteOffset: Int): Int {
+              val readingBuffer: ByteBuffer) : JSitter.TSInput {
+    override fun read(byteOffset: Int): Int {
         text.read(byteOffset, readingBuffer)
         val bytesCount = readingBuffer.position()
         readingBuffer.rewind()
@@ -204,14 +207,14 @@ data class TSZipper(val cursor: Ptr,
     private var cachedNodeType: NodeType? = null
 
     private fun move(dir: Dir, filter: Filter): Zipper<*>? {
-        val success: Boolean = when (filter) {
-            is WithNodeType -> {
+        val success = when (filter) {
+            is Filter.WithNodeType -> {
                 JSitter.move(cursor, dir.i, tree.language.getNodeTypeSymbol(filter.nodeType), false)
             }
-            is AnyNode -> {
+            is Filter.AnyNode -> {
                 JSitter.move(cursor, dir.i, -1, false)
             }
-            is NamedNode -> {
+            is Filter.NamedNode -> {
                 JSitter.move(cursor, dir.i, -1, true)
             }
         }

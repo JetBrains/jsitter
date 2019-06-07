@@ -1,4 +1,4 @@
-package com.jetbrains.jsitter;
+package jsitter.interop;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -15,6 +15,11 @@ public class JSitter {
             System.load(filename);
         }
     }
+
+    public interface TSInput {
+        int read(int byteOffset);
+    }
+
 
     public static native boolean move(long cursor, int dir, short tsSymbol, boolean named);
 

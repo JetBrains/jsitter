@@ -1,4 +1,4 @@
-package com.jetbrains.jsitter;
+package jsitter.interop;
 
 import java.io.*;
 import java.nio.file.FileSystemNotFoundException;
