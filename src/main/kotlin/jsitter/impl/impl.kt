@@ -161,7 +161,9 @@ data class TSParser(val parserPtr: Ptr,
                     edit?.startByte ?: -1,
                     edit?.oldEndByte ?: -1,
                     edit?.newEndByte ?: -1)
-            return TSTree(treePtr, language)
+            val newTree = TSTree(treePtr, language)
+            oldTree = newTree
+            return newTree
         }
     }
 }
