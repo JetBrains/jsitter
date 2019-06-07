@@ -7,6 +7,7 @@ TSLanguage *tree_sitter_go();
 }
 
 int main () {
+    
     TSParser *parser = ts_parser_new();
     ts_parser_set_language(parser, tree_sitter_go());
     const char *str = "{\"abc\": [12, \"hello\", {\"cde\": 1}], 1: 2}";

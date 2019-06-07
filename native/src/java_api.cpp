@@ -2,8 +2,14 @@
 #define trie_java_api_h
 #include <jni.h>
 #include <cstdint>
+#include <tree_sitter/api.h>
 
-
+struct Zipper {
+    TSTreeCursor cursor;
+    uint32_t start_byte;
+    uint32_t end_byte;
+    TSSymbol symbol;
+};
 
 #ifdef __cplusplus
 extern "C" {
