@@ -22,9 +22,9 @@ interface Resource {
 }
 
 class TSLanguage(val languagePtr: Ptr,
-                 val registry: MutableMap<String, NodeType>,
-                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap(),
-                 override val name: String) : Language, Resource {
+                 override val name: String,
+                 val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
+                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language, Resource {
 
     init {
         Cleaner.register(this)
@@ -128,8 +128,8 @@ fun ByteBuffer.address(): Ptr? =
             null
         }
 
-class TSInput(val text: Text,
-              val readingBuffer: ByteBuffer) : JSitter.TSInput {
+class TSInputImpl(val text: Text,
+                  val readingBuffer: ByteBuffer) : JSitter.TSInput {
     override fun read(byteOffset: Int): Int {
         text.read(byteOffset, readingBuffer)
         val bytesCount = readingBuffer.position()
@@ -153,7 +153,7 @@ data class TSParser(val parserPtr: Ptr,
 
     override fun parse(text: Text, edit: Edit?): CST {
         synchronized(this) {
-            val tsInput = TSInput(text, readingBuffer)
+            val tsInput = TSInputImpl(text, readingBuffer)
             val treePtr = JSitter.parse(parserPtr,
                     oldTree?.treePtr ?: 0,
                     tsInput,
