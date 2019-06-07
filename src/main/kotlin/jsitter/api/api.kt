@@ -42,6 +42,7 @@ open class Terminal(name: String) : NodeType(name)
 interface Language {
     val name: String
     fun parser(): Parser
+    fun nodeType(name: String) : NodeType
 }
 
 interface AST<T : NodeType> {

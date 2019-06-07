@@ -25,6 +25,7 @@ class TSLanguage(val languagePtr: Ptr,
                  override val name: String,
                  val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
                  val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language {
+
     fun getNodeType(tsSymbol: TSSymbol): NodeType =
             nodeTypesCache.computeIfAbsent(tsSymbol) { symbol ->
                 if (symbol.toInt() == -1) {
@@ -53,6 +54,8 @@ class TSLanguage(val languagePtr: Ptr,
                 nodeType.initialized = true
                 symbol
             }
+
+    override fun nodeType(name: String): NodeType = registry[name]!!
 
     override fun parser(): Parser =
             TSParser(oldTree = null,
