@@ -26,9 +26,18 @@ interface Zipper<out T : NodeType> {
 
 open class NodeType(val name: String) {
     var id: Int = -1
+    var initialized = false
+}
+
+object Error: NodeType("ERROR") {
+    init {
+        id = -1
+        initialized = true
+    }
 }
 
 open class Terminal(name: String) : NodeType(name)
+
 
 interface Language {
     val name: String

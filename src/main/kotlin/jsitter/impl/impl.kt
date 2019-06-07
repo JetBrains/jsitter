@@ -24,38 +24,33 @@ interface Resource {
 class TSLanguage(val languagePtr: Ptr,
                  override val name: String,
                  val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
-                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language, Resource {
-
-    init {
-        Cleaner.register(this)
-    }
-
-    override fun disposer(): Disposer =
-            {
-                JSitter.releaseLanguage(languagePtr)
-            }
-
+                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language {
     fun getNodeType(tsSymbol: TSSymbol): NodeType =
             nodeTypesCache.computeIfAbsent(tsSymbol) { symbol ->
-                val name: String = JSitter.getSymbolName(languagePtr, symbol)
-                val isTerminal: Boolean = JSitter.isTerminal(languagePtr, symbol)
-                val nodeType = registry.computeIfAbsent(name) { name ->
-                    if (isTerminal) {
-                        Terminal(name)
-                    } else {
-                        NodeType(name)
+                if (symbol.toInt() == -1) {
+                    Error
+                } else {
+                    val name: String = JSitter.getSymbolName(languagePtr, symbol)
+                    val isTerminal: Boolean = JSitter.isTerminal(languagePtr, symbol)
+                    val nodeType = registry.computeIfAbsent(name) { name ->
+                        if (isTerminal) {
+                            Terminal(name)
+                        } else {
+                            NodeType(name)
+                        }
                     }
+                    nodeType.id = symbol.toInt()
+                    nodeType
                 }
-                nodeType.id = symbol.toInt()
-                nodeType
             }
 
     fun getNodeTypeSymbol(nodeType: NodeType): TSSymbol =
-            if (nodeType.id != -1) {
+            if (nodeType.initialized) {
                 nodeType.id.toShort()
             } else {
                 val symbol: TSSymbol = JSitter.getSymbolByName(languagePtr, nodeType.name)
                 nodeType.id = symbol.toInt()
+                nodeType.initialized = true
                 symbol
             }
 
@@ -119,7 +114,7 @@ data class TSTree(val treePtr: Ptr,
             }
 }
 
-val READING_BUFFER_CAPACITY = 1024
+const val READING_BUFFER_CAPACITY = 1024
 
 fun ByteBuffer.address(): Ptr? =
         if (this is DirectBuffer) {
@@ -128,8 +123,8 @@ fun ByteBuffer.address(): Ptr? =
             null
         }
 
-class TSInputImpl(val text: Text,
-                  val readingBuffer: ByteBuffer) : JSitter.TSInput {
+class TextInput(val text: Text,
+                val readingBuffer: ByteBuffer) : JSitter.Input {
     override fun read(byteOffset: Int): Int {
         text.read(byteOffset, readingBuffer)
         val bytesCount = readingBuffer.position()
@@ -153,7 +148,7 @@ data class TSParser(val parserPtr: Ptr,
 
     override fun parse(text: Text, edit: Edit?): CST {
         synchronized(this) {
-            val tsInput = TSInputImpl(text, readingBuffer)
+            val tsInput = TextInput(text, readingBuffer)
             val treePtr = JSitter.parse(parserPtr,
                     oldTree?.treePtr ?: 0,
                     tsInput,
@@ -183,12 +178,6 @@ object UnsafeAccess {
     fun getCursorEndByte(cursor: Ptr): Int = unsafe.getInt(cursor + TSCursorSize + 4)
 
     fun getCursorSymbol(cursor: Ptr): TSSymbol = unsafe.getShort(cursor + TSCursorSize + 4 + 4)
-
-    fun copyCursor(cursor: Ptr): Ptr {
-        val dst = unsafe.allocateMemory(ZipperSize)
-        unsafe.copyMemory(cursor, dst, ZipperSize)
-        return dst
-    }
 }
 
 enum class Dir(val i: Int) {
@@ -241,12 +230,12 @@ data class TSZipper(val cursor: Ptr,
     override fun prev(filter: Filter): Zipper<*>? = move(Dir.PREV, filter)
 
     override fun copy(): Zipper<*> {
-        val copyPtr = UnsafeAccess.copyCursor(cursor)
+        val copyPtr = JSitter.copyCursor(cursor)
         return TSZipper(copyPtr, tree)
     }
 
     override fun str(): String? {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return JSitter.getName(cursor)
     }
 
     override val range: BytesRange

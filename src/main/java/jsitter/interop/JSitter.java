@@ -1,6 +1,7 @@
 package jsitter.interop;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
@@ -16,10 +17,14 @@ public class JSitter {
         }
     }
 
-    public interface TSInput {
+    @Nullable
+    public static native String getName(long cursorPtr);
+
+    public interface Input {
         int read(int byteOffset);
     }
 
+    public static native long copyCursor(long cursor);
 
     public static native boolean move(long cursor, int dir, short tsSymbol, boolean named);
 
@@ -29,15 +34,13 @@ public class JSitter {
 
     public static native short getSymbolByName(long languagePtr, String name);
 
-    public static native void releaseLanguage(long languagePtr);
-
     public static native void releaseTree(long treePtr);
 
     public static native void releaseParser(long parserPtr);
 
     public static native long parse(long parserPtr,
                                     long oldTreePtr,
-                                    @NotNull TSInput tsInput,
+                                    @NotNull Input input,
                                     long readingBufferPtr,
                                     int startByte,
                                     int oldEndByte,
