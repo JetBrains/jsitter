@@ -13,10 +13,8 @@ sealed class Filter {
 interface Zipper<out T : NodeType> {
     fun up(filter: Filter = Filter.AnyNode): Zipper<*>?
     fun down(filter: Filter = Filter.AnyNode): Zipper<*>?
-    fun left(filter: Filter = Filter.AnyNode): Zipper<*>?
     fun right(filter: Filter = Filter.AnyNode): Zipper<*>?
     fun next(filter: Filter = Filter.AnyNode): Zipper<*>?
-    fun prev(filter: Filter = Filter.AnyNode): Zipper<*>?
 
     fun copy(): Zipper<*>
     fun str(): String?
@@ -52,7 +50,7 @@ interface AST<T : NodeType> {
 
 typealias CST = AST<*>
 
-enum class Encoding { UTF8, UTF16 }
+enum class Encoding(val i: Int) { UTF8(0), UTF16(1) }
 
 interface Text {
     /*

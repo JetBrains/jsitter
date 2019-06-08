@@ -155,6 +155,7 @@ data class TSParser(val parserPtr: Ptr,
             val treePtr = JSitter.parse(parserPtr,
                     oldTree?.treePtr ?: 0,
                     tsInput,
+                    text.encoding.i,
                     readingBuffer.address()!!,
                     edit?.startByte ?: -1,
                     edit?.oldEndByte ?: -1,
@@ -184,7 +185,7 @@ object UnsafeAccess {
 }
 
 enum class Dir(val i: Int) {
-    UP(0), DOWN(1), LEFT(2), RIGHT(3), NEXT(4), PREV(5)
+    UP(0), DOWN(1), RIGHT(3), NEXT(4)
 }
 
 data class TSZipper(val cursor: Ptr,
@@ -203,13 +204,13 @@ data class TSZipper(val cursor: Ptr,
     private fun move(dir: Dir, filter: Filter): Zipper<*>? {
         val success = when (filter) {
             is Filter.WithNodeType -> {
-                JSitter.move(cursor, dir.i, tree.language.getNodeTypeSymbol(filter.nodeType), false)
+                JSitter.move(cursor, dir.i, true, tree.language.getNodeTypeSymbol(filter.nodeType), false)
             }
             is Filter.AnyNode -> {
-                JSitter.move(cursor, dir.i, -1, false)
+                JSitter.move(cursor, dir.i, false, -1, false)
             }
             is Filter.NamedNode -> {
-                JSitter.move(cursor, dir.i, -1, true)
+                JSitter.move(cursor, dir.i, false, -1, true)
             }
         }
         if (success) {
@@ -224,13 +225,9 @@ data class TSZipper(val cursor: Ptr,
 
     override fun down(filter: Filter): Zipper<*>? = move(Dir.DOWN, filter)
 
-    override fun left(filter: Filter): Zipper<*>? = move(Dir.LEFT, filter)
-
     override fun right(filter: Filter): Zipper<*>? = move(Dir.RIGHT, filter)
 
     override fun next(filter: Filter): Zipper<*>? = move(Dir.NEXT, filter)
-
-    override fun prev(filter: Filter): Zipper<*>? = move(Dir.PREV, filter)
 
     override fun copy(): Zipper<*> {
         val copyPtr = JSitter.copyCursor(cursor)

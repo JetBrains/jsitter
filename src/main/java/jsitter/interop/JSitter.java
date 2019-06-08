@@ -26,7 +26,7 @@ public class JSitter {
 
     public static native long copyCursor(long cursor);
 
-    public static native boolean move(long cursor, int dir, short tsSymbol, boolean named);
+    public static native boolean move(long cursor, int dir, boolean toSymbol, short tsSymbol, boolean named);
 
     public static native String getSymbolName(long languagePtr, short symbol);
 
@@ -41,6 +41,7 @@ public class JSitter {
     public static native long parse(long parserPtr,
                                     long oldTreePtr,
                                     @NotNull Input input,
+                                    int encoding,
                                     long readingBufferPtr,
                                     int startByte,
                                     int oldEndByte,

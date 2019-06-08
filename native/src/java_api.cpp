@@ -11,19 +11,109 @@ struct TSZipper {
     TSSymbol symbol;
 };
 
+
+TSZipper *new_zipper(TSNode root) {
+    TSZipper *new_zipper = (TSZipper *)malloc(sizeof(TSZipper));
+    TSTreeCursor c = ts_tree_cursor_new(root);
+    new_zipper->cursor = c;
+    new_zipper->start_byte = ts_node_start_byte(root);
+    new_zipper->end_byte = ts_node_end_byte(root);
+    new_zipper->symbol = ts_node_symbol(root);
+    return new_zipper;
+}
+
+const int UP = 0;
+const int DOWN = 1;
+const int RIGHT = 3;
+const int NEXT = 4;
+
+template<int dir>
+bool cursor_move(TSTreeCursor *cursor);
+
+template<>
+bool cursor_move<UP>(TSTreeCursor *cursor) {
+    return ts_tree_cursor_goto_parent(cursor);
+}
+
+template<>
+bool cursor_move<DOWN>(TSTreeCursor *cursor) {
+    return ts_tree_cursor_goto_first_child(cursor);
+}
+
+template<>
+bool cursor_move<RIGHT>(TSTreeCursor *cursor) {
+    return ts_tree_cursor_goto_next_sibling(cursor);
+}
+
+template<>
+bool cursor_move<NEXT>(TSTreeCursor *cursor) {
+    if (ts_tree_cursor_goto_first_child(cursor)) {
+        return true;
+    } else if (ts_tree_cursor_goto_next_sibling(cursor)) {
+        return true;
+    } else {
+        while (ts_tree_cursor_goto_parent(cursor)) {
+            if (ts_tree_cursor_goto_next_sibling(cursor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+}
+
+template<int dir>
+bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
+    TSNode current = ts_tree_cursor_current_node(&zip->cursor);
+    if (toSymbol) {
+        bool found = false;
+        while (cursor_move<dir>(&zip->cursor)) {
+            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
+            if (ts_node_symbol(node) == symbol) {
+                found = true;
+                zip->symbol = ts_node_symbol(node);
+                zip->start_byte = ts_node_start_byte(node);
+                zip->end_byte = ts_node_end_byte(node);
+                break;
+            }
+        }
+        if (!found) {
+            ts_tree_cursor_reset(&zip->cursor, current);
+        }
+        return found;
+    } else if (named) {
+        bool found = false;
+        while (cursor_move<dir>(&zip->cursor)) {
+            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
+            if (ts_node_is_named(node)) {
+                found = true;
+                zip->symbol = ts_node_symbol(node);
+                zip->start_byte = ts_node_start_byte(node);
+                zip->end_byte = ts_node_end_byte(node);
+                break;
+            }
+        }
+        if (!found) {
+            ts_tree_cursor_reset(&zip->cursor, current);
+        }
+        return found;
+    } else {
+        if (cursor_move<dir>(&zip->cursor)) {
+            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
+            zip->symbol = ts_node_symbol(node);
+            zip->start_byte = ts_node_start_byte(node);
+            zip->end_byte = ts_node_end_byte(node);
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
     
-    TSZipper *new_zipper(TSNode root) {
-        TSZipper *new_zipper = (TSZipper *)malloc(sizeof(TSZipper));
-        TSTreeCursor c = ts_tree_cursor_new(root);
-        new_zipper->cursor = c;
-        new_zipper->start_byte = ts_node_start_byte(root);
-        new_zipper->end_byte = ts_node_end_byte(root);
-        new_zipper->symbol = ts_node_symbol(root);
-        return new_zipper;
-    }
     
     /*
      * Class:     jsitter_interop_JSitter
@@ -42,7 +132,22 @@ extern "C" {
      * Signature: (JISZ)Z
      */
     JNIEXPORT jboolean JNICALL Java_jsitter_interop_JSitter_move
-    (JNIEnv *, jclass, jlong, jint, jshort, jboolean);
+    (JNIEnv *, jclass, jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
+        TSZipper *zip = (TSZipper *)zipper_ptr;
+        TSSymbol symbol = (TSSymbol)ts_symbol;
+        switch (dir) {
+            case UP:
+                return zipper_move<UP>(zip, toSymbol, symbol , named);
+            case DOWN:
+                return zipper_move<DOWN>(zip, toSymbol, symbol , named);
+            case RIGHT:
+                return zipper_move<UP>(zip, toSymbol, symbol , named);
+            case NEXT:
+                return zipper_move<UP>(zip, toSymbol, symbol , named);
+            default:
+                abort();
+        }
+    }
     
     /*
      * Class:     jsitter_interop_JSitter
@@ -109,13 +214,58 @@ extern "C" {
         ts_parser_delete((TSParser *)parser_ptr);
     }
     
+    struct Input {
+        JNIEnv *env;
+        jobject input;
+        jmethodID read_mtd;
+        const char *reading_addr;
+    };
+    
+    const char *input_jni_read(void *payload, uint32_t byte_index, TSPoint position, uint32_t *bytes_read) {
+        Input *input = (Input *)payload;
+        jint read = input->env->CallIntMethod(input->input, input->read_mtd, byte_index);
+        *bytes_read = read;
+        return input->reading_addr;
+    }
+    
     /*
      * Class:     jsitter_interop_JSitter
      * Method:    parse
      * Signature: (JJLjsitter/interop/JSitter/Input;JIII)J
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parse
-    (JNIEnv *, jclass, jlong, jlong, jobject, jlong, jint, jint, jint);
+    (JNIEnv *env, jclass, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jlong reading_addr, jint start_byte, jint old_end_byte, jint new_end_byte) {
+        jclass input_class = env->GetObjectClass(input);
+        jmethodID read_mtd = env->GetMethodID(input_class, "read", "(I)I");
+        
+        Input input_ctx;
+        input_ctx.env = env;
+        input_ctx.input = input;
+        input_ctx.read_mtd = read_mtd;
+        input_ctx.reading_addr = (const char *)reading_addr;
+        
+        TSInput ts_input;
+        ts_input.encoding = (TSInputEncoding)encoding;
+        ts_input.payload = &input_ctx;
+        ts_input.read = &input_jni_read;
+        
+        TSParser *parser = (TSParser *)parser_ptr;
+        if (old_tree_ptr) {
+            TSTree *old_tree = (TSTree *)old_tree_ptr;
+            TSTree *old_tree_copy = ts_tree_copy(old_tree);
+            TSInputEdit edit;
+            edit.start_byte = start_byte;
+            edit.old_end_byte = old_end_byte;
+            edit.new_end_byte = new_end_byte;
+            ts_tree_edit(old_tree_copy, &edit);
+            
+            TSTree *new_tree = ts_parser_parse(parser, old_tree_copy, ts_input);
+            ts_tree_delete(old_tree_copy);
+            return (jlong)new_tree;
+        } else {
+            return (jlong) ts_parser_parse(parser, NULL, ts_input);
+        }
+    }
     
     /*
      * Class:     jsitter_interop_JSitter
