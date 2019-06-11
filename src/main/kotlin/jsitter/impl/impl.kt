@@ -76,14 +76,16 @@ object Cleaner {
     val started = AtomicBoolean()
 
     fun start() {
-        Thread({
+        val thread = Thread({
             while (true) {
                 val key = refQueue.remove()
                 val disposer = refs.remove(key)!!
                 refsCount.decrementAndGet()
                 disposer()
             }
-        }, "com.jetbrains.jsitter.cleaner").start()
+        }, "com.jetbrains.jsitter.cleaner")
+        thread.isDaemon = true
+        thread.start()
     }
 
     fun register(r: Resource) {
@@ -98,7 +100,12 @@ object Cleaner {
 }
 
 fun loadTSLanguage(name: String): TSLanguage? {
-    TODO()
+    val langPtr: Ptr = JSitter.findLanguage(name)
+    return if (langPtr != 0L) {
+        TSLanguage(langPtr, name)
+    } else {
+        null
+    }
 }
 
 
@@ -213,11 +220,11 @@ data class TSZipper(val cursor: Ptr,
                 JSitter.move(cursor, dir.i, false, -1, true)
             }
         }
-        if (success) {
+        return if (success) {
             cachedNodeType = null
-            return this
+            this
         } else {
-            return null
+            null
         }
     }
 

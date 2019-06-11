@@ -20,6 +20,8 @@ public class JSitter {
     @Nullable
     public static native String getName(long cursorPtr);
 
+    public static native long findLanguage(@NotNull String name);
+
     public interface Input {
         int read(int byteOffset);
     }

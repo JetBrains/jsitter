@@ -65,37 +65,29 @@ template<int dir>
 bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
     TSNode current = ts_tree_cursor_current_node(&zip->cursor);
     if (toSymbol) {
-        bool found = false;
         while (cursor_move<dir>(&zip->cursor)) {
             TSNode node = ts_tree_cursor_current_node(&zip->cursor);
             if (ts_node_symbol(node) == symbol) {
-                found = true;
                 zip->symbol = ts_node_symbol(node);
                 zip->start_byte = ts_node_start_byte(node);
                 zip->end_byte = ts_node_end_byte(node);
-                break;
+                return true;
             }
         }
-        if (!found) {
-            ts_tree_cursor_reset(&zip->cursor, current);
-        }
-        return found;
+        ts_tree_cursor_reset(&zip->cursor, current);
+        return false;
     } else if (named) {
-        bool found = false;
         while (cursor_move<dir>(&zip->cursor)) {
             TSNode node = ts_tree_cursor_current_node(&zip->cursor);
             if (ts_node_is_named(node)) {
-                found = true;
                 zip->symbol = ts_node_symbol(node);
                 zip->start_byte = ts_node_start_byte(node);
                 zip->end_byte = ts_node_end_byte(node);
-                break;
+                return true;
             }
         }
-        if (!found) {
-            ts_tree_cursor_reset(&zip->cursor, current);
-        }
-        return found;
+        ts_tree_cursor_reset(&zip->cursor, current);
+        return false;
     } else {
         if (cursor_move<dir>(&zip->cursor)) {
             TSNode node = ts_tree_cursor_current_node(&zip->cursor);
@@ -109,11 +101,32 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
     }
 }
 
+TSZipper *copy_zipper(TSZipper *zip) {
+    return new_zipper(ts_tree_cursor_current_node(&zip->cursor));
+}
+
+bool zipper_move(TSZipper *zip, int dir, bool to_symbol, TSSymbol symbol, bool named) {
+    switch (dir) {
+        case UP:
+            return zipper_move<UP>(zip, to_symbol, symbol , named);
+        case DOWN:
+            return zipper_move<DOWN>(zip, to_symbol, symbol , named);
+        case RIGHT:
+            return zipper_move<UP>(zip, to_symbol, symbol , named);
+        case NEXT:
+            return zipper_move<NEXT>(zip, to_symbol, symbol , named);
+        default:
+            abort();
+    }
+}
 
 #ifdef __cplusplus
 extern "C" {
 #endif
     
+    TSLanguage *tree_sitter_go();
+    
+    TSLanguage *tree_sitter_json();
     
     /*
      * Class:     jsitter_interop_JSitter
@@ -122,8 +135,12 @@ extern "C" {
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_copyCursor
     (JNIEnv *, jclass, jlong zipper_ptr) {
-        TSZipper *zip = (TSZipper *)zipper_ptr;
-        return (jlong) new_zipper(ts_tree_cursor_current_node(&zip->cursor));
+        return (jlong) copy_zipper((TSZipper *)zipper_ptr);
+    }
+    
+    JNIEXPORT jlong JNICALL JavaCritical_jsitter_interop_JSitter_copyCursor
+    (jlong zipper_ptr) {
+        return (jlong) copy_zipper((TSZipper *)zipper_ptr);
     }
     
     /*
@@ -133,20 +150,11 @@ extern "C" {
      */
     JNIEXPORT jboolean JNICALL Java_jsitter_interop_JSitter_move
     (JNIEnv *, jclass, jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
-        TSZipper *zip = (TSZipper *)zipper_ptr;
-        TSSymbol symbol = (TSSymbol)ts_symbol;
-        switch (dir) {
-            case UP:
-                return zipper_move<UP>(zip, toSymbol, symbol , named);
-            case DOWN:
-                return zipper_move<DOWN>(zip, toSymbol, symbol , named);
-            case RIGHT:
-                return zipper_move<UP>(zip, toSymbol, symbol , named);
-            case NEXT:
-                return zipper_move<UP>(zip, toSymbol, symbol , named);
-            default:
-                abort();
-        }
+        return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
+    }
+    JNIEXPORT jboolean JNICALL JavaCritical_jsitter_interop_JSitter_move
+    (jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
+        return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
     }
     
     /*
@@ -156,7 +164,7 @@ extern "C" {
      */
     JNIEXPORT jstring JNICALL Java_jsitter_interop_JSitter_getSymbolName
     (JNIEnv *env, jclass, jlong language_ptr, jshort ts_symbol) {
-        const char *name = ts_language_symbol_name((TSLanguage *)language_ptr, ts_symbol);
+        const char *name = ts_language_symbol_name((TSLanguage *)language_ptr, (TSSymbol)ts_symbol);
         return env->NewStringUTF(name);
     }
     
@@ -175,6 +183,11 @@ extern "C" {
      */
     JNIEXPORT jboolean JNICALL Java_jsitter_interop_JSitter_isTerminal
     (JNIEnv *, jclass, jlong language_ptr, jshort ts_symbol) {
+        return ts_language_symbol_type((TSLanguage*)language_ptr, (TSSymbol)ts_symbol) == TSSymbolTypeAnonymous;
+    }
+    
+    JNIEXPORT jboolean JNICALL JavaCritical_jsitter_interop_JSitter_isTerminal
+    (jlong language_ptr, jshort ts_symbol) {
         return ts_language_symbol_type((TSLanguage*)language_ptr, (TSSymbol)ts_symbol) == TSSymbolTypeAnonymous;
     }
     
@@ -228,6 +241,8 @@ extern "C" {
         return input->reading_addr;
     }
     
+    static jmethodID read_mtd = 0;
+    
     /*
      * Class:     jsitter_interop_JSitter
      * Method:    parse
@@ -235,8 +250,10 @@ extern "C" {
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parse
     (JNIEnv *env, jclass, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jlong reading_addr, jint start_byte, jint old_end_byte, jint new_end_byte) {
-        jclass input_class = env->GetObjectClass(input);
-        jmethodID read_mtd = env->GetMethodID(input_class, "read", "(I)I");
+        if (read_mtd == 0) {
+            jclass input_class = env->FindClass("jsitter/interop/JSitter$Input");
+            read_mtd = env->GetMethodID(input_class, "read", "(I)I");
+        }
         
         Input input_ctx;
         input_ctx.env = env;
@@ -279,6 +296,14 @@ extern "C" {
         free(zip);
     }
     
+    JNIEXPORT void JNICALL JavaCritical_jsitter_interop_JSitter_releaseZipper
+    (jlong zipper_ptr) {
+        TSZipper *zip = (TSZipper *)zipper_ptr;
+        ts_tree_cursor_delete(&zip->cursor);
+        free(zip);
+    }
+
+    
     /*
      * Class:     jsitter_interop_JSitter
      * Method:    makeCursor
@@ -286,6 +311,13 @@ extern "C" {
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_makeCursor
     (JNIEnv *, jclass, jlong tree_ptr) {
+        TSTree *tree = (TSTree *)tree_ptr;
+        TSNode root = ts_tree_root_node(tree);
+        return (jlong)new_zipper(root);
+    }
+    
+    JNIEXPORT jlong JNICALL JavaCritical_jsitter_interop_JSitter_makeCursor
+    (jlong tree_ptr) {
         TSTree *tree = (TSTree *)tree_ptr;
         TSNode root = ts_tree_root_node(tree);
         return (jlong)new_zipper(root);
@@ -301,6 +333,29 @@ extern "C" {
         TSParser *parser = ts_parser_new();
         ts_parser_set_language(parser, (TSLanguage *)language_ptr);
         return (jlong) parser;
+    }
+    
+    JNIEXPORT jlong JNICALL JavaCritical_jsitter_interop_JSitter_newParser
+    (jlong language_ptr) {
+        TSParser *parser = ts_parser_new();
+        ts_parser_set_language(parser, (TSLanguage *)language_ptr);
+        return (jlong) parser;
+    }
+    
+    JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_findLanguage
+    (JNIEnv *env, jclass, jstring name) {
+        jboolean copy;
+        const char *language_name = env->GetStringUTFChars(name, &copy);
+        TSLanguage *lang = NULL;
+        if (!strcmp(language_name, "go")) {
+            lang = tree_sitter_go();
+        } else if (!strcmp(language_name, "json")) {
+            lang = tree_sitter_json();
+        }
+        if (copy) {
+            env->ReleaseStringUTFChars(name, language_name);
+        }
+        return (jlong) lang;
     }
     
 #ifdef __cplusplus
