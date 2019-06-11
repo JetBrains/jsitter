@@ -9,7 +9,7 @@ TSLanguage *tree_sitter_go();
 }
 
 void perf() {
-    FILE *f = fopen("/Users/jetzajac/Projects/jsitter/testData/router.go", "r");
+    FILE *f = fopen("/Users/jetzajac/Projects/jsitter/testData/router_go", "r");
     fseek (f, 0, SEEK_END);
     size_t s = ftell(f);
     rewind(f);

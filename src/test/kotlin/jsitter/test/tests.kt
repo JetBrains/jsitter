@@ -39,7 +39,7 @@ class Test1 {
 
     @Test
     fun perf() {
-        val bytes = Files.readAllBytes(Paths.get("testData/router.go"))
+        val bytes = Files.readAllBytes(Paths.get("testData/router_go"))
         val text = object : Text {
             override fun read(byteOffset: Int, output: ByteBuffer) {
                 output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
