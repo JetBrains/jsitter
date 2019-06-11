@@ -25,9 +25,9 @@ void perf() {
     TSZipper *z = new_zipper(root_node);
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC_RAW, &start);
-    int i = 0;
+    
     while (zipper_move<NEXT>(z, false, 0, false)) {
-        ++i;
+        
     }
     clock_gettime(CLOCK_MONOTONIC_RAW, &end);
     uint64_t delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
