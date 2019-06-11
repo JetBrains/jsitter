@@ -124,7 +124,7 @@ data class TSTree(val treePtr: Ptr,
             }
 }
 
-const val READING_BUFFER_CAPACITY = 1024
+const val READING_BUFFER_CAPACITY = 1024 * 1024
 
 fun ByteBuffer.address(): Ptr? =
         if (this is DirectBuffer) {
