@@ -152,6 +152,7 @@ extern "C" {
     (JNIEnv *, jclass, jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
         return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
     }
+    
     JNIEXPORT jboolean JNICALL JavaCritical_jsitter_interop_JSitter_move
     (jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
         return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
