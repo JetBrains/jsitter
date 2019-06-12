@@ -110,7 +110,8 @@ fun loadTSLanguage(name: String): TSLanguage? {
 
 
 data class TSTree(val treePtr: Ptr,
-                  override val language: TSLanguage) : AST<NodeType>, Resource {
+                  override val language: TSLanguage,
+                  val text: Text) : AST<NodeType>, Resource {
     init {
         Cleaner.register(this)
     }
@@ -167,7 +168,7 @@ data class TSParser(val parserPtr: Ptr,
                     edit?.startByte ?: -1,
                     edit?.oldEndByte ?: -1,
                     edit?.newEndByte ?: -1)
-            val newTree = TSTree(treePtr, language)
+            val newTree = TSTree(treePtr, language, text)
             oldTree = newTree
             return newTree
         }
@@ -198,7 +199,7 @@ enum class Dir(val i: Int) {
 }
 
 data class TSZipper(val cursor: Ptr,
-                    val tree: TSTree) : Zipper<NodeType>, Resource {
+                    override val tree: TSTree) : Zipper<NodeType>, Resource {
     override val id: Any
         get() = UnsafeAccess.getCursorId(cursor)
 
@@ -235,7 +236,13 @@ data class TSZipper(val cursor: Ptr,
 
     override fun up(filter: Filter): Zipper<*>? = move(Dir.UP, filter)
 
-    override fun down(filter: Filter): Zipper<*>? = move(Dir.DOWN, filter)
+    override fun down(filter: Filter): Zipper<*>? =
+        if (nodeType is Terminal) {
+            null
+        } else {
+            move(Dir.DOWN, filter)
+        }
+
 
     override fun right(filter: Filter): Zipper<*>? = move(Dir.RIGHT, filter)
 
@@ -247,7 +254,8 @@ data class TSZipper(val cursor: Ptr,
     }
 
     override fun str(): String? {
-        return JSitter.getName(cursor)
+        val (startByte, endByte) = range
+        return tree.text.text(startByte, endByte)
     }
 
     override val range: BytesRange

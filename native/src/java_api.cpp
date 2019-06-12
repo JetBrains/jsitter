@@ -117,7 +117,7 @@ bool zipper_move(TSZipper *zip, int dir, bool to_symbol, TSSymbol symbol, bool n
         case DOWN:
             return zipper_move<DOWN>(zip, to_symbol, symbol , named);
         case RIGHT:
-            return zipper_move<UP>(zip, to_symbol, symbol , named);
+            return zipper_move<RIGHT>(zip, to_symbol, symbol , named);
         case NEXT:
             return zipper_move<NEXT>(zip, to_symbol, symbol , named);
         default:

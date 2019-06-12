@@ -21,6 +21,7 @@ interface Zipper<out T : NodeType> {
     val range: BytesRange?
     val nodeType: T
     val id: Any
+    val tree: CST
 }
 
 open class NodeType(val name: String) {
@@ -62,6 +63,8 @@ interface Text {
     * */
     fun read(byteOffset: Int, output: ByteBuffer)
 
+    fun text(startByte: Int, endByte: Int): String
+
     val encoding: Encoding
 }
 
@@ -69,11 +72,16 @@ interface Text {
  * Simple implementation of Text for testing purposes
  */
 class StringText(val str: String) : Text {
+    override fun text(startByte: Int, endByte: Int): String =
+            str.substring(startByte, endByte)
+
     override val encoding: Encoding = Encoding.UTF8
+
     override fun read(byteOffset: Int, output: ByteBuffer) {
         val bytes = str.toByteArray(Charsets.UTF_8)
         output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
     }
+
 }
 
 data class Edit(val startByte: Int,

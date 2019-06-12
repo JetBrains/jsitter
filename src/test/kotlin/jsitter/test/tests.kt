@@ -36,12 +36,16 @@ class Test1 {
                 "(",
                 ")",
                 "}"), str)
+        assertEquals("{ sayHello() }", tree.zipper().down()!!.down()!!.right()!!.right()!!.right()!!.str())
     }
 
     @Test
     fun perf() {
         val bytes = Files.readAllBytes(Paths.get("testData/router_go"))
         val text = object : Text {
+            override fun text(startByte: Int, endByte: Int): String =
+                String(bytes, startByte, endByte - startByte, Charsets.UTF_8)
+
             override fun read(byteOffset: Int, output: ByteBuffer) {
                 output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
             }
