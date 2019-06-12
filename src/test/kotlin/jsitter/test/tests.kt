@@ -18,6 +18,7 @@ class Test1 {
         val str = arrayListOf<String>()
         while (zipper != null) {
             str.add(zipper.nodeType.toString())
+            println(zipper.id)
             zipper = zipper.next()
         }
         assertEquals(listOf("source_file",

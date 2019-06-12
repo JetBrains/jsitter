@@ -188,7 +188,9 @@ object UnsafeAccess {
 
     fun getCursorEndByte(cursor: Ptr): Int = unsafe.getInt(cursor + TSCursorSize + 4)
 
-    fun getCursorSymbol(cursor: Ptr): TSSymbol = unsafe.getShort(cursor + TSCursorSize + 4 + 4)
+    fun getCursorId(cursor: Ptr): Long = unsafe.getLong(cursor + TSCursorSize + 4 + 4)
+
+    fun getCursorSymbol(cursor: Ptr): TSSymbol = unsafe.getShort(cursor + TSCursorSize + 4 + 4 + 8)
 }
 
 enum class Dir(val i: Int) {
@@ -197,6 +199,9 @@ enum class Dir(val i: Int) {
 
 data class TSZipper(val cursor: Ptr,
                     val tree: TSTree) : Zipper<NodeType>, Resource {
+    override val id: Any
+        get() = UnsafeAccess.getCursorId(cursor)
+
     init {
         Cleaner.register(this)
     }

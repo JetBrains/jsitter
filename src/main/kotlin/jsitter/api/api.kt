@@ -20,6 +20,7 @@ interface Zipper<out T : NodeType> {
     fun str(): String?
     val range: BytesRange?
     val nodeType: T
+    val id: Any
 }
 
 open class NodeType(val name: String) {

@@ -8,6 +8,7 @@ struct TSZipper {
     TSTreeCursor cursor;
     uint32_t start_byte;
     uint32_t end_byte;
+    const void *id;
     TSSymbol symbol;
 };
 
@@ -19,6 +20,7 @@ TSZipper *new_zipper(TSNode root) {
     new_zipper->start_byte = ts_node_start_byte(root);
     new_zipper->end_byte = ts_node_end_byte(root);
     new_zipper->symbol = ts_node_symbol(root);
+    new_zipper->id = root.id;
     return new_zipper;
 }
 
@@ -71,6 +73,7 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
                 zip->symbol = ts_node_symbol(node);
                 zip->start_byte = ts_node_start_byte(node);
                 zip->end_byte = ts_node_end_byte(node);
+                zip->id = node.id;
                 return true;
             }
         }
@@ -83,6 +86,7 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
                 zip->symbol = ts_node_symbol(node);
                 zip->start_byte = ts_node_start_byte(node);
                 zip->end_byte = ts_node_end_byte(node);
+                zip->id = node.id;
                 return true;
             }
         }
@@ -94,6 +98,7 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
             zip->symbol = ts_node_symbol(node);
             zip->start_byte = ts_node_start_byte(node);
             zip->end_byte = ts_node_end_byte(node);
+            zip->id = node.id;
             return true;
         } else {
             return false;
