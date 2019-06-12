@@ -36,7 +36,11 @@ class Test1 {
                 "(",
                 ")",
                 "}"), str)
-        assertEquals("{ sayHello() }", tree.zipper().down()!!.down()!!.right()!!.right()!!.right()!!.str())
+        val codeBlock = tree.zipper().down()!!.down()!!.right()!!.right()!!.right()!!
+        assertEquals("{ sayHello() }", codeBlock.str())
+        val copy = codeBlock.copy()
+        assertEquals("func hello() { sayHello() }", copy.up()!!.str())
+        assertEquals("func hello() { sayHello() }", codeBlock.copy().up()!!.str())
     }
 
     @Test
@@ -62,7 +66,6 @@ class Test1 {
             nodesCount++
         }
         println("nodesCount = ${nodesCount}")
-
 
         val start = System.nanoTime()
         zipper = tree.zipper()

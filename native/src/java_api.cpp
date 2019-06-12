@@ -65,7 +65,6 @@ bool cursor_move<NEXT>(TSTreeCursor *cursor) {
 
 template<int dir>
 bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
-    TSNode current = ts_tree_cursor_current_node(&zip->cursor);
     if (toSymbol) {
         while (cursor_move<dir>(&zip->cursor)) {
             TSNode node = ts_tree_cursor_current_node(&zip->cursor);
@@ -77,7 +76,6 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
                 return true;
             }
         }
-        ts_tree_cursor_reset(&zip->cursor, current);
         return false;
     } else if (named) {
         while (cursor_move<dir>(&zip->cursor)) {
@@ -90,7 +88,6 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
                 return true;
             }
         }
-        ts_tree_cursor_reset(&zip->cursor, current);
         return false;
     } else {
         if (cursor_move<dir>(&zip->cursor)) {
@@ -107,7 +104,14 @@ bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
 }
 
 TSZipper *copy_zipper(TSZipper *zip) {
-    return new_zipper(ts_tree_cursor_current_node(&zip->cursor));
+    TSZipper *new_zipper = (TSZipper *)malloc(sizeof(TSZipper));
+    TSNode node = ts_tree_cursor_current_node(&zip->cursor);
+    new_zipper->cursor = ts_tree_cursor_copy(&zip->cursor);
+    new_zipper->start_byte = ts_node_start_byte(node);
+    new_zipper->end_byte = ts_node_end_byte(node);
+    new_zipper->symbol = ts_node_symbol(node);
+    new_zipper->id = node.id;
+    return new_zipper;
 }
 
 bool zipper_move(TSZipper *zip, int dir, bool to_symbol, TSSymbol symbol, bool named) {
