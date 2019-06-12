@@ -4,7 +4,6 @@ import jsitter.api.*
 import jsitter.interop.*
 
 import sun.misc.Unsafe
-import sun.nio.ch.DirectBuffer
 import java.lang.ref.PhantomReference
 import java.lang.ref.ReferenceQueue
 import java.nio.ByteBuffer
@@ -127,13 +126,6 @@ data class TSTree(val treePtr: Ptr,
 
 const val READING_BUFFER_CAPACITY = 1024 * 1024
 
-fun ByteBuffer.address(): Ptr? =
-        if (this is DirectBuffer) {
-            this.address()
-        } else {
-            null
-        }
-
 class TextInput(val text: Text,
                 val readingBuffer: ByteBuffer) : JSitter.Input {
     override fun read(byteOffset: Int): Int {
@@ -164,7 +156,7 @@ data class TSParser(val parserPtr: Ptr,
                     oldTree?.treePtr ?: 0,
                     tsInput,
                     text.encoding.i,
-                    readingBuffer.address()!!,
+                    readingBuffer,
                     edit?.startByte ?: -1,
                     edit?.oldEndByte ?: -1,
                     edit?.newEndByte ?: -1)

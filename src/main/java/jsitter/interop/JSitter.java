@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 public class JSitter {
     static {
@@ -44,7 +45,7 @@ public class JSitter {
                                     long oldTreePtr,
                                     @NotNull Input input,
                                     int encoding,
-                                    long readingBufferPtr,
+                                    ByteBuffer readingBuffer,
                                     int startByte,
                                     int oldEndByte,
                                     int newEndByte);

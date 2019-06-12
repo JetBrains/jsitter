@@ -255,12 +255,12 @@ extern "C" {
      * Signature: (JJLjsitter/interop/JSitter/Input;JIII)J
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parse
-    (JNIEnv *env, jclass, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jlong reading_addr, jint start_byte, jint old_end_byte, jint new_end_byte) {
+    (JNIEnv *env, jclass, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jobject reading_buffer, jint start_byte, jint old_end_byte, jint new_end_byte) {
         if (read_mtd == 0) {
             jclass input_class = env->FindClass("jsitter/interop/JSitter$Input");
             read_mtd = env->GetMethodID(input_class, "read", "(I)I");
         }
-        
+        void *reading_addr = env->GetDirectBufferAddress(reading_buffer);
         Input input_ctx;
         input_ctx.env = env;
         input_ctx.input = input;
