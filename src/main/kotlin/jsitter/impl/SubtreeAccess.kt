@@ -56,6 +56,9 @@ object SubtreeAccess {
     }
 
     fun childAt(subtree: Ptr, i: Int): Ptr {
+        if (isInline(subtree)) {
+            throw AssertionError()
+        }
         val children_ptr = unsafe.getAddress(subtree + children)
         return unsafe.getAddress(children_ptr + i * 8)
     }
@@ -94,6 +97,9 @@ object SubtreeAccess {
     }
 
     fun productionId(subtree: Ptr): Int {
+        if (isInline(subtree)) {
+            throw AssertionError()
+        }
         return readShort(subtree + production_id)
     }
 
