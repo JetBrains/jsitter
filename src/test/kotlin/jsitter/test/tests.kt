@@ -52,10 +52,17 @@ class Test1 {
                 .down()!!
                 .right()!!
         assertEquals("call_expression", codeBlock.nodeType.name)
+        val tree1 = parser.parse(StringText("func bye() { sayHello() }"), Edit(5, 10, 8))
+        var z: Zipper<*>? = tree1.zipper()
+        while (z != null) {
+            println(z.nodeType)
+            z = z.next()
+        }
     }
 
     @Test
     fun perf() {
+        Thread.sleep(10000)
         val bytes = Files.readAllBytes(Paths.get("testData/router_go"))
         val text = object : Text {
             override fun read(byteOffset: Int, output: ByteBuffer) {
@@ -66,22 +73,27 @@ class Test1 {
         }
         val lang = golang()
         val parser = lang.parser(SourceFile)
+        val start1 = System.nanoTime()
         val tree = parser.parse(text)
+        val end1 = System.nanoTime()
+        println("parse time = ${end1 - start1}")
         var zipper: Zipper<*>? = tree.zipper()
         var nodesCount = 0
+        val start2 = System.nanoTime()
         while (zipper != null) {
             zipper = zipper.next()
             nodesCount++
         }
+        val end2 = System.nanoTime()
+        println("walk1 time = ${end2 - start2}")
         println("nodesCount = ${nodesCount}")
-
         val start = System.nanoTime()
         zipper = tree.zipper()
         while (zipper != null) {
             zipper = zipper.next()
         }
         val end = System.nanoTime()
-        println("elapsed time = ${end - start}")
+        println("walk2 time = ${end - start}")
     }
 }
 

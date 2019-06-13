@@ -26,6 +26,27 @@ bool ts_zipper_next(TSZipper *zipper, TSZipper *res, TSLanguage *lang) {
     return false;
 }
 
+void perf() {
+    FILE *f = fopen("/Users/jetzajac/Projects/jsitter/testData/router_go", "r");
+    fseek (f, 0, SEEK_END);
+    size_t s = ftell(f);
+    rewind(f);
+    void *b = malloc(s);
+    fread(b, s, 1, f);
+    TSParser *parser = ts_parser_new();
+    ts_parser_set_language(parser, tree_sitter_go());
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+    TSTree *tree = ts_parser_parse_string(parser,
+                                          NULL,
+                                          (const char *)b,
+                                          s);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    uint64_t delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+    printf("took %llu\n", delta_us);
+}
+
+
 int main () {
     TSParser *parser = ts_parser_new();
     TSLanguage *lang = tree_sitter_go();
@@ -55,5 +76,6 @@ int main () {
         TSSymbol s = ts_zipper_node_type(r);
         printf("%s\n", ts_language_symbol_name(lang, s));
     }
+    perf();
     return 0;
 }

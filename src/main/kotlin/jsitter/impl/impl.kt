@@ -5,7 +5,7 @@ import jsitter.interop.*
 
 import java.nio.ByteBuffer
 
-const val READING_BUFFER_CAPACITY = 1024 * 1024
+const val READING_BUFFER_CAPACITY = 1024 * 1024 * 100
 
 class TextInput(val text: Text,
                 val readingBuffer: ByteBuffer) : JSitter.Input {
