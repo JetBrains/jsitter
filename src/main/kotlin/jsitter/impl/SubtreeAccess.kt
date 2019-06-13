@@ -98,7 +98,11 @@ object SubtreeAccess {
     }
 
     fun visibleChildCount(subtree: Ptr): Int {
-        return unsafe.getInt(subtree + visible_children_count)
+        if (isInline(subtree)) {
+            return 0
+        } else {
+            return unsafe.getInt(subtree + visible_children_count)
+        }
     }
 
     fun aliasSequenceAt(aliasSequence: Ptr, structuralChildIndex: Int): Int {
