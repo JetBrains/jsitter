@@ -2,34 +2,54 @@ package jsitter.api
 
 import java.nio.ByteBuffer
 
-data class BytesRange(val from: Int, val to: Int)
+data class Key<T>(val key: Any)
 
-sealed class Filter {
-    data class WithNodeType(val nodeType: NodeType) : Filter()
-    object AnyNode : Filter()
-    object NamedNode : Filter()
+interface DataHolder<out T> {
+    fun <U> assoc(k: Key<U>, v: U): T
+    operator fun <U> get(k: Key<U>): U?
 }
 
-interface Zipper<out T : NodeType> {
-    fun up(filter: Filter = Filter.AnyNode): Zipper<*>?
-    fun down(filter: Filter = Filter.AnyNode): Zipper<*>?
-    fun right(filter: Filter = Filter.AnyNode): Zipper<*>?
-    fun next(filter: Filter = Filter.AnyNode): Zipper<*>?
-
-    fun copy(): Zipper<*>
-    fun str(): String?
-    val range: BytesRange?
+interface Tree<out T : NodeType> : DataHolder<Tree<T>> {
+    val language: Language
     val nodeType: T
-    val id: Any
-    val tree: CST
+    val bytesSize: Int
+    fun zipper(): Zipper<T>
 }
+
+interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
+    fun up(): Zipper<*>?
+    fun down(): Zipper<*>?
+    fun right(): Zipper<*>?
+    fun left(): Zipper<*>?
+
+    fun retainSubtree(): Tree<T>
+
+    val byteOffset: Int
+    val bytesSize: Int
+    val nodeType: T
+    val language: Language
+}
+
+fun <T : NodeType> Zipper<T>.skip(): Zipper<*>? {
+    var u: Zipper<*>? = this
+    while (u != null) {
+        val r = u.right()
+        if (r != null) {
+            return r
+        } else {
+            u = u.up()
+        }
+    }
+    return null
+}
+
+fun <T : NodeType> Zipper<T>.next(): Zipper<*>? = down() ?: skip()
+
 
 open class NodeType(val name: String) {
     var id: Int = -1
     var initialized = false
-    override fun toString(): String {
-        return name
-    }
+    override fun toString(): String = name
 }
 
 object Error : NodeType("ERROR") {
@@ -41,19 +61,11 @@ object Error : NodeType("ERROR") {
 
 open class Terminal(name: String) : NodeType(name)
 
-
 interface Language {
     val name: String
-    fun parser(): Parser
+    fun <T : NodeType> parser(nodeType: T): Parser<T>
     fun nodeType(name: String): NodeType
 }
-
-interface AST<T : NodeType> {
-    val language: Language
-    fun zipper(): Zipper<T>
-}
-
-typealias CST = AST<*>
 
 enum class Encoding(val i: Int) { UTF8(0), UTF16(1) }
 
@@ -63,32 +75,15 @@ interface Text {
     * */
     fun read(byteOffset: Int, output: ByteBuffer)
 
-    fun text(startByte: Int, endByte: Int): String
-
     val encoding: Encoding
-}
-
-/*
- * Simple implementation of Text for testing purposes
- */
-class StringText(val str: String) : Text {
-    override fun text(startByte: Int, endByte: Int): String =
-            str.substring(startByte, endByte)
-
-    override val encoding: Encoding = Encoding.UTF8
-
-    override fun read(byteOffset: Int, output: ByteBuffer) {
-        val bytes = str.toByteArray(Charsets.UTF_8)
-        output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
-    }
-
 }
 
 data class Edit(val startByte: Int,
                 val oldEndByte: Int,
                 val newEndByte: Int)
 
-interface Parser {
-    fun parse(text: Text, edit: Edit? = null): CST
+interface Parser<T : NodeType> {
+    fun parse(text: Text, edit: Edit? = null): Tree<T>
+    val language: Language
 }
 

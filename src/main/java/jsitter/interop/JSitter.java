@@ -1,7 +1,6 @@
 package jsitter.interop;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -18,24 +17,21 @@ public class JSitter {
         }
     }
 
-    @Nullable
-    public static native String getName(long cursorPtr);
-
     public static native long findLanguage(@NotNull String name);
+
+    public static native void releaseSubtree(long subtree);
+
+    public static native void retainSubtree(long subtree);
 
     public interface Input {
         int read(int byteOffset);
     }
 
-    public static native long copyCursor(long cursor);
+    public static native String getSymbolName(long languagePtr, int symbol);
 
-    public static native boolean move(long cursor, int dir, boolean toSymbol, short tsSymbol, boolean named);
+    public static native boolean isTerminal(long languagePtr, int symbol);
 
-    public static native String getSymbolName(long languagePtr, short symbol);
-
-    public static native boolean isTerminal(long languagePtr, short symbol);
-
-    public static native short getSymbolByName(long languagePtr, String name);
+    public static native int getSymbolByName(long languagePtr, String name);
 
     public static native void releaseTree(long treePtr);
 
@@ -49,10 +45,6 @@ public class JSitter {
                                     int startByte,
                                     int oldEndByte,
                                     int newEndByte);
-
-    public static native void releaseZipper(long cursorPtr);
-
-    public static native long makeCursor(long treePtr);
 
     public static native long newParser(long languagePtr);
 }

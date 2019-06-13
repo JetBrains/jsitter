@@ -2,132 +2,8 @@
 #include <jni.h>
 #include <tree_sitter/api.h>
 #include <cstring>
+#include "subtree.h"
 /* Header for class jsitter_interop_JSitter */
-
-struct TSZipper {
-    TSTreeCursor cursor;
-    uint32_t start_byte;
-    uint32_t end_byte;
-    const void *id;
-    TSSymbol symbol;
-};
-
-
-TSZipper *new_zipper(TSNode root) {
-    TSZipper *new_zipper = (TSZipper *)malloc(sizeof(TSZipper));
-    TSTreeCursor c = ts_tree_cursor_new(root);
-    new_zipper->cursor = c;
-    new_zipper->start_byte = ts_node_start_byte(root);
-    new_zipper->end_byte = ts_node_end_byte(root);
-    new_zipper->symbol = ts_node_symbol(root);
-    new_zipper->id = root.id;
-    return new_zipper;
-}
-
-const int UP = 0;
-const int DOWN = 1;
-const int RIGHT = 3;
-const int NEXT = 4;
-
-template<int dir>
-bool cursor_move(TSTreeCursor *cursor);
-
-template<>
-bool cursor_move<UP>(TSTreeCursor *cursor) {
-    return ts_tree_cursor_goto_parent(cursor);
-}
-
-template<>
-bool cursor_move<DOWN>(TSTreeCursor *cursor) {
-    return ts_tree_cursor_goto_first_child(cursor);
-}
-
-template<>
-bool cursor_move<RIGHT>(TSTreeCursor *cursor) {
-    return ts_tree_cursor_goto_next_sibling(cursor);
-}
-
-template<>
-bool cursor_move<NEXT>(TSTreeCursor *cursor) {
-    if (ts_tree_cursor_goto_first_child(cursor)) {
-        return true;
-    } else if (ts_tree_cursor_goto_next_sibling(cursor)) {
-        return true;
-    } else {
-        while (ts_tree_cursor_goto_parent(cursor)) {
-            if (ts_tree_cursor_goto_next_sibling(cursor)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-template<int dir>
-bool zipper_move(TSZipper *zip, bool toSymbol,  TSSymbol symbol, bool named) {
-    if (toSymbol) {
-        while (cursor_move<dir>(&zip->cursor)) {
-            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
-            if (ts_node_symbol(node) == symbol) {
-                zip->symbol = ts_node_symbol(node);
-                zip->start_byte = ts_node_start_byte(node);
-                zip->end_byte = ts_node_end_byte(node);
-                zip->id = node.id;
-                return true;
-            }
-        }
-        return false;
-    } else if (named) {
-        while (cursor_move<dir>(&zip->cursor)) {
-            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
-            if (ts_node_is_named(node)) {
-                zip->symbol = ts_node_symbol(node);
-                zip->start_byte = ts_node_start_byte(node);
-                zip->end_byte = ts_node_end_byte(node);
-                zip->id = node.id;
-                return true;
-            }
-        }
-        return false;
-    } else {
-        if (cursor_move<dir>(&zip->cursor)) {
-            TSNode node = ts_tree_cursor_current_node(&zip->cursor);
-            zip->symbol = ts_node_symbol(node);
-            zip->start_byte = ts_node_start_byte(node);
-            zip->end_byte = ts_node_end_byte(node);
-            zip->id = node.id;
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-
-TSZipper *copy_zipper(TSZipper *zip) {
-    TSZipper *new_zipper = (TSZipper *)malloc(sizeof(TSZipper));
-    TSNode node = ts_tree_cursor_current_node(&zip->cursor);
-    new_zipper->cursor = ts_tree_cursor_copy(&zip->cursor);
-    new_zipper->start_byte = ts_node_start_byte(node);
-    new_zipper->end_byte = ts_node_end_byte(node);
-    new_zipper->symbol = ts_node_symbol(node);
-    new_zipper->id = node.id;
-    return new_zipper;
-}
-
-bool zipper_move(TSZipper *zip, int dir, bool to_symbol, TSSymbol symbol, bool named) {
-    switch (dir) {
-        case UP:
-            return zipper_move<UP>(zip, to_symbol, symbol , named);
-        case DOWN:
-            return zipper_move<DOWN>(zip, to_symbol, symbol , named);
-        case RIGHT:
-            return zipper_move<RIGHT>(zip, to_symbol, symbol , named);
-        case NEXT:
-            return zipper_move<NEXT>(zip, to_symbol, symbol , named);
-        default:
-            abort();
-    }
-}
 
 #ifdef __cplusplus
 extern "C" {
@@ -139,50 +15,12 @@ extern "C" {
     
     /*
      * Class:     jsitter_interop_JSitter
-     * Method:    copyCursor
-     * Signature: (J)J
-     */
-    JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_copyCursor
-    (JNIEnv *, jclass, jlong zipper_ptr) {
-        return (jlong) copy_zipper((TSZipper *)zipper_ptr);
-    }
-    
-    JNIEXPORT jlong JNICALL JavaCritical_jsitter_interop_JSitter_copyCursor
-    (jlong zipper_ptr) {
-        return (jlong) copy_zipper((TSZipper *)zipper_ptr);
-    }
-    
-    /*
-     * Class:     jsitter_interop_JSitter
-     * Method:    move
-     * Signature: (JISZ)Z
-     */
-    JNIEXPORT jboolean JNICALL Java_jsitter_interop_JSitter_move
-    (JNIEnv *, jclass, jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
-        return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
-    }
-    
-    JNIEXPORT jboolean JNICALL JavaCritical_jsitter_interop_JSitter_move
-    (jlong zipper_ptr, jint dir, jboolean toSymbol, jshort ts_symbol, jboolean named) {
-        return zipper_move((TSZipper *)zipper_ptr, dir, toSymbol, (TSSymbol)ts_symbol, named);
-    }
-    
-    /*
-     * Class:     jsitter_interop_JSitter
      * Method:    getSymbolName
      * Signature: (JS)Ljava/lang/String;
      */
     JNIEXPORT jstring JNICALL Java_jsitter_interop_JSitter_getSymbolName
-    (JNIEnv *env, jclass, jlong language_ptr, jshort ts_symbol) {
+    (JNIEnv *env, jclass, jlong language_ptr, jint ts_symbol) {
         const char *name = ts_language_symbol_name((TSLanguage *)language_ptr, (TSSymbol)ts_symbol);
-        return env->NewStringUTF(name);
-    }
-    
-    JNIEXPORT jstring JNICALL Java_jsitter_interop_JSitter_getName
-    (JNIEnv *env, jclass, jlong zipper_ptr) {
-        TSZipper *zip = (TSZipper *)zipper_ptr;
-        TSNode node = ts_tree_cursor_current_node(&zip->cursor);
-        const char *name = ts_node_type(node);
         return env->NewStringUTF(name);
     }
     
@@ -192,12 +30,12 @@ extern "C" {
      * Signature: (JS)Z
      */
     JNIEXPORT jboolean JNICALL Java_jsitter_interop_JSitter_isTerminal
-    (JNIEnv *, jclass, jlong language_ptr, jshort ts_symbol) {
+    (JNIEnv *, jclass, jlong language_ptr, jint ts_symbol) {
         return ts_language_symbol_type((TSLanguage*)language_ptr, (TSSymbol)ts_symbol) == TSSymbolTypeAnonymous;
     }
     
     JNIEXPORT jboolean JNICALL JavaCritical_jsitter_interop_JSitter_isTerminal
-    (jlong language_ptr, jshort ts_symbol) {
+    (jlong language_ptr, jint ts_symbol) {
         return ts_language_symbol_type((TSLanguage*)language_ptr, (TSSymbol)ts_symbol) == TSSymbolTypeAnonymous;
     }
     
@@ -206,7 +44,7 @@ extern "C" {
      * Method:    getSymbolByName
      * Signature: (JLjava/lang/String;)S
      */
-    JNIEXPORT jshort JNICALL Java_jsitter_interop_JSitter_getSymbolByName
+    JNIEXPORT jint JNICALL Java_jsitter_interop_JSitter_getSymbolByName
     (JNIEnv *env, jclass, jlong language_ptr, jstring name) {
         jboolean copy;
         const char *chars = env->GetStringUTFChars(name, &copy);
@@ -215,6 +53,18 @@ extern "C" {
             env->ReleaseStringUTFChars(name, chars);
         }
         return symbol;
+    }
+    
+    JNIEXPORT void JNICALL Java_jsitter_interop_JSitter_releaseSubtree
+    (JNIEnv *, jclass, jlong subtree_ptr) {
+        SubtreePool pool = ts_subtree_pool_new(0);
+        ts_subtree_release(&pool, *(Subtree *)(&subtree_ptr));
+        ts_subtree_pool_delete(&pool);
+    }
+    
+    JNIEXPORT void JNICALL Java_jsitter_interop_JSitter_retainSubtree
+    (JNIEnv *, jclass, jlong subtree_ptr) {
+        ts_subtree_retain(*(Subtree *)(&subtree_ptr));
     }
     
     /*
@@ -292,45 +142,6 @@ extern "C" {
         } else {
             return (jlong) ts_parser_parse(parser, NULL, ts_input);
         }
-    }
-    
-    /*
-     * Class:     jsitter_interop_JSitter
-     * Method:    releaseZipper
-     * Signature: (J)V
-     */
-    JNIEXPORT void JNICALL Java_jsitter_interop_JSitter_releaseZipper
-    (JNIEnv *, jclass, jlong zipper_ptr) {
-        TSZipper *zip = (TSZipper *)zipper_ptr;
-        ts_tree_cursor_delete(&zip->cursor);
-        free(zip);
-    }
-    
-    JNIEXPORT void JNICALL JavaCritical_jsitter_interop_JSitter_releaseZipper
-    (jlong zipper_ptr) {
-        TSZipper *zip = (TSZipper *)zipper_ptr;
-        ts_tree_cursor_delete(&zip->cursor);
-        free(zip);
-    }
-
-    
-    /*
-     * Class:     jsitter_interop_JSitter
-     * Method:    makeCursor
-     * Signature: (J)J
-     */
-    JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_makeCursor
-    (JNIEnv *, jclass, jlong tree_ptr) {
-        TSTree *tree = (TSTree *)tree_ptr;
-        TSNode root = ts_tree_root_node(tree);
-        return (jlong)new_zipper(root);
-    }
-    
-    JNIEXPORT jlong JNICALL JavaCritical_jsitter_interop_JSitter_makeCursor
-    (jlong tree_ptr) {
-        TSTree *tree = (TSTree *)tree_ptr;
-        TSNode root = ts_tree_root_node(tree);
-        return (jlong)new_zipper(root);
     }
     
     /*
