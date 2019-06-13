@@ -48,7 +48,7 @@ class TSLanguage(val languagePtr: Ptr,
                     language = this,
                     nodeType = nodeType) as Parser<T>
 
-    fun register(nodeType: NodeType) {
+    override fun register(nodeType: NodeType) {
         registry[nodeType.name] = nodeType
     }
 }

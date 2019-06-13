@@ -65,6 +65,7 @@ interface Language {
     val name: String
     fun <T : NodeType> parser(nodeType: T): Parser<T>
     fun nodeType(name: String): NodeType
+    fun register(nodeType: NodeType)
 }
 
 enum class Encoding(val i: Int) { UTF8(0), UTF16(1) }
