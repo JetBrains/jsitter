@@ -34,11 +34,6 @@ data class TSTree(val treePtr: Ptr,
                   val text: Text,
                   override val nodeType: NodeType,
                   val userData: UserData = UserData()) : Tree<NodeType>, Resource {
-    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
-            copy(userData = userData.put(k, v))
-
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
-
     init {
         Cleaner.register(this)
     }
@@ -60,18 +55,17 @@ data class TSTree(val treePtr: Ptr,
             {
                 JSitter.releaseTree(treePtr)
             }
+
+    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
+            copy(userData = userData.put(k, v))
+
+    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
 }
 
 
 data class Subtree(val subtree: Ptr,
                    override val language: TSLanguage,
                    val userData: UserData = UserData()) : Tree<NodeType>, Resource {
-
-    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
-            copy(userData = userData.put(k, v))
-
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
-
     init {
         JSitter.retainSubtree(subtree)
         Cleaner.register(this)
@@ -98,6 +92,11 @@ data class Subtree(val subtree: Ptr,
                     byteOffset = 0,
                     childIndex = 0,
                     root = this)
+
+    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
+            copy(userData = userData.put(k, v))
+
+    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
 }
 
 
@@ -260,10 +259,6 @@ data class TSZipper(val parent: TSZipper?,
                     val structuralChildIndex: Int,
                     val root: Tree<*>,
                     val userData: UserData = UserData()) : Zipper<NodeType> {
-    override fun <U> assoc(k: Key<U>, v: U): TSZipper = copy(userData = userData.put(k, v))
-
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
-
     override val bytesSize: Int
         get() = SubtreeAccess.subtreeBytesSize(subtree)
 
@@ -283,5 +278,9 @@ data class TSZipper(val parent: TSZipper?,
     override fun right(): Zipper<*>? = right(this)
 
     override fun retainSubtree(): Tree<NodeType> = Subtree(subtree, language)
+
+    override fun <U> assoc(k: Key<U>, v: U): TSZipper = copy(userData = userData.put(k, v))
+
+    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
 }
 

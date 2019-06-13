@@ -47,7 +47,9 @@ class Test1 {
                 .right()!!
                 .right()!!
                 .right()!!
-        assertEquals("block", codeBlock.nodeType.name)
+                .down()!!
+                .right()!!
+        assertEquals("call_expression", codeBlock.nodeType.name)
     }
 
 //    @Test
