@@ -38,7 +38,7 @@ data class TSTree(val treePtr: Ptr,
         Cleaner.register(this)
     }
 
-    override val bytesSize: Int
+    override val byteSize: Int
         get() = SubtreeAccess.subtreeBytesSize(SubtreeAccess.root(treePtr))
 
     override fun zipper(): Zipper<NodeType> =
@@ -80,7 +80,7 @@ data class Subtree(val subtree: Ptr,
         language.getNodeType(SubtreeAccess.subtreeNodeType(subtree))
     }
 
-    override val bytesSize: Int
+    override val byteSize: Int
         get() = SubtreeAccess.subtreeBytesSize(subtree)
 
     override fun zipper(): TSZipper =
@@ -259,7 +259,7 @@ data class TSZipper(val parent: TSZipper?,
                     val structuralChildIndex: Int,
                     val root: Tree<*>,
                     val userData: UserData = UserData()) : Zipper<NodeType> {
-    override val bytesSize: Int
+    override val byteSize: Int
         get() = SubtreeAccess.subtreeBytesSize(subtree)
 
     override val nodeType: NodeType by lazy {

@@ -12,7 +12,7 @@ interface DataHolder<out T> {
 interface Tree<out T : NodeType> : DataHolder<Tree<T>> {
     val language: Language
     val nodeType: T
-    val bytesSize: Int
+    val byteSize: Int
     fun zipper(): Zipper<T>
 }
 
@@ -25,7 +25,7 @@ interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
     fun retainSubtree(): Tree<T>
 
     val byteOffset: Int
-    val bytesSize: Int
+    val byteSize: Int
     val nodeType: T
     val language: Language
 }
