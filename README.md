@@ -16,5 +16,8 @@ Here we have options:
 * Navigate throught trees in native memory using Zippers.
 
 API with Zippers is the solution taken.
-Zipper gives us a nice abstraction over the tree implementation without producing expensive wrappers/adaptors per node.
-Zippers over tree-sitter currently implemented with JNI. However it is not the only way to do that. There is an opportunity to avoid JNI overhead in future by navigating trees in native memory using only Unsafe intrinsics.
+Zipper gives us a nice abstraction over the place-in-tree (with ability to ascend) without compromising immutability of the tree itself.
+Zippers are implemented by accessing internal TreeSitter data structures directly using sun.misc.Unsafe instrinsics and don't do any JNI calls and don't consume any additional off-heap memory.
+
+Here is some discussion regarding the TreeSitter API:
+https://github.com/tree-sitter/tree-sitter/pull/360#issuecomment-501686115
