@@ -62,7 +62,6 @@ class Test1 {
 
     @Test
     fun perf() {
-        Thread.sleep(10000)
         val bytes = Files.readAllBytes(Paths.get("testData/router_go"))
         val text = object : Text {
             override fun read(byteOffset: Int, output: ByteBuffer) {
