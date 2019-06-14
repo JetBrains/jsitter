@@ -21,3 +21,16 @@ Zippers are implemented by accessing internal TreeSitter data structures directl
 
 Here is some discussion regarding the TreeSitter API:
 https://github.com/tree-sitter/tree-sitter/pull/360#issuecomment-501686115
+
+# Build Instructions
+
+```
+$ git submodule update --init --recursive
+$ cd native
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
+$ cd ../../
+$ mvn install
+```
