@@ -1,7 +1,7 @@
 #include <tree_sitter/api.h>
 #include <cstring>
 #include <sys/time.h>
-#include "java_api.cpp"
+//#include "java_api.cpp"
 #include <cassert>
 
 extern "C" {
