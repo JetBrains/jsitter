@@ -4,32 +4,20 @@ project(JSitter)
 #set(CMAKE_BUILD_TYPE Release)
 
 find_package(JNI REQUIRED)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_STANDARD 17)
 
-if (MSVC)
-    SET(CMAKE_CXX_FLAGS_DEBUG "/Od")
-    SET(CMAKE_CXX_FLAGS_RELEASE "/O2")
-else ()
-    SET(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-    SET(CMAKE_CXX_FLAGS "-Wall -std=c++17 -stdlib=libc++")
-    SET(CMAKE_CXX_FLAGS_DEBUG "-g")
-    SET(CMAKE_CXX_FLAGS_RELEASE "-mavx -mavx2 -Ofast -DNDEBUG")
-    SET(CLANG_DEFAULT_CXX_STDLIB "libc++")
-
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
-endif ()
+SET(CMAKE_C_COMPILER "/usr/bin/clang")
+SET(CMAKE_C_FLAGS "-Wall -Ofast")
 
 include_directories(src/)
 include_directories(tree-sitter/lib/src tree-sitter/lib/include tree-sitter/lib/utf8proc)
 include_directories(${JNI_INCLUDE_DIRS})
 
-add_library(jsitter SHARED src/java_api.cpp tree-sitter/lib/src/lib.c)
+add_library(jsitter SHARED src/java_api.c tree-sitter/lib/src/lib.c)
 
 add_library(tsjson SHARED grammars/tree-sitter-json/src/parser.c)
 add_library(tsgo SHARED grammars/tree-sitter-go/src/parser.c)
 
 target_link_libraries(jsitter tsjson tsgo)
 
-add_executable(jsitter-tests src/tests.cpp)
+add_executable(jsitter-tests src/tests.c)
 target_link_libraries(jsitter-tests jsitter)

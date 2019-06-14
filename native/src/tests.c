@@ -1,13 +1,11 @@
 #include <tree_sitter/api.h>
-#include <cstring>
+#include <string.h>
 #include <sys/time.h>
 //#include "java_api.cpp"
-#include <cassert>
+#include <assert.h>
 
-extern "C" {
 TSLanguage *tree_sitter_json();
 TSLanguage *tree_sitter_go();
-}
 
 bool ts_zipper_next(TSZipper *zipper, TSZipper *res, TSLanguage *lang) {
     bool down = ts_zipper_down(zipper, res, lang);
