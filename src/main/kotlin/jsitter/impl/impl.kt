@@ -229,7 +229,23 @@ private fun left(zip: TSZipper): TSZipper? =
             if (visible(res)) {
                 res
             } else {
-                left(res)
+                val d = down(res)
+                if (d != null) {
+                    d
+                } else {
+                    left(res)
+                }
+            }
+        }
+
+private fun up(zip: TSZipper) : TSZipper? =
+        if (zip.parent == null) {
+            null
+        } else {
+            if (visible(zip.parent)) {
+                zip.parent
+            } else {
+                up(zip.parent)
             }
         }
 
@@ -269,7 +285,7 @@ data class TSZipper(val parent: TSZipper?,
     override val language: TSLanguage
         get() = root.language as TSLanguage
 
-    override fun up(): Zipper<*>? = parent
+    override fun up(): Zipper<*>? = up(this)
 
     override fun down(): Zipper<*>? = down(this)
 
