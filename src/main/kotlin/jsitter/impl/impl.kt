@@ -5,7 +5,7 @@ import jsitter.interop.*
 
 import java.nio.ByteBuffer
 
-const val READING_BUFFER_CAPACITY = 1024 * 1024 * 100
+const val READING_BUFFER_CAPACITY = 1024 * 1024
 
 class TextInput(val text: Text,
                 val readingBuffer: ByteBuffer) : JSitter.Input {
@@ -61,7 +61,6 @@ data class TSTree(val treePtr: Ptr,
 
     override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
 }
-
 
 data class Subtree(val subtree: Ptr,
                    override val language: TSLanguage,
