@@ -266,6 +266,18 @@ private fun visible(zip: TSZipper): Boolean =
             }
         }
 
+private fun skip(zip: TSZipper) : TSZipper? {
+    var u: TSZipper? = zip
+    while (u != null) {
+        val r = right(u)
+        if (r != null) {
+            return r
+        } else {
+            u = u.parent
+        }
+    }
+    return null
+}
 
 data class TSZipper(val parent: TSZipper?,
                     val parentAliasSequence: Ptr,
@@ -292,6 +304,10 @@ data class TSZipper(val parent: TSZipper?,
     override fun left(): Zipper<*>? = left(this)
 
     override fun right(): Zipper<*>? = right(this)
+
+    override fun next(): Zipper<*>? = down(this) ?: skip(this)
+
+    override fun skip(): Zipper<*>? = skip(this)
 
     override fun retainSubtree(): Tree<NodeType> = Subtree(subtree, language)
 
