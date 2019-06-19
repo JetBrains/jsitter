@@ -24,7 +24,7 @@ class Test1 {
         val parser = lang.parser(SourceFile)
         val tree = parser.parse(StringText("func hello() { sayHello() }")).tree
         val nodeTypes = arrayListOf<NodeType>()
-        highlightSyntax(tree.zipper(), 0 to tree.byteSize, null, object : SyntaxHighlighter<Nothing?> {
+        highlightSyntax(tree.zipper(), 0, tree.byteSize, null, object : SyntaxHighlighter<Nothing?> {
             override fun highlight(acc: Nothing?, zip: Zipper<*>): Nothing? {
                 nodeTypes.add(zip.nodeType)
                 return null
@@ -40,7 +40,7 @@ class Test1 {
         var z: Zipper<*>? = res.tree.zipper()
         val changedNodes = arrayListOf<String>()
         for (r in changedRanges) {
-            val (acc, zip) = highlightSyntax(z!!, r, null, object : SyntaxHighlighter<Nothing?> {
+            val (acc, zip) = highlightSyntax(z!!, r.first, r.second, null, object : SyntaxHighlighter<Nothing?> {
                 override fun highlight(acc: Nothing?, zip: Zipper<*>): Nothing? {
                     changedNodes.add(zip.nodeType.name)
                     return null
@@ -53,7 +53,6 @@ class Test1 {
             z = zip
         }
         assertEquals(listOf("identifier"), changedNodes)
-        changedNodes
     }
 
     @Test
