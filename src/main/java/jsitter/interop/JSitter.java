@@ -1,6 +1,7 @@
 package jsitter.interop;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -38,13 +39,17 @@ public class JSitter {
     public static native void releaseParser(long parserPtr);
 
     public static native long parse(long parserPtr,
-                                    long oldTreePtr,
+                                    long editedTreePtr,
                                     @NotNull Input input,
                                     int encoding,
-                                    ByteBuffer readingBuffer,
-                                    int startByte,
-                                    int oldEndByte,
-                                    int newEndByte);
+                                    ByteBuffer readingBuffer);
+
+    public static native long copyTree(long treePtr);
+
+    public static native void editTree(long treePtr, int startByte, int oldEndByte, int newEndByte);
+
+    @Nullable
+    public static native int[] getChangedRanges(long editedTreePtr, long newTreePtr);
 
     public static native long newParser(long languagePtr);
 }

@@ -73,9 +73,12 @@ typealias BytesRange = Pair<Int, Int>
 
 val CHANGED_RANGES: Key<List<BytesRange>> = Key("jsitter/changed-ranges")
 
+data class ParseResult<T: NodeType>(val tree: Tree<T>,
+                                    val changedRanges: List<BytesRange>)
+
 //TODO: attach changed_ranges info to Tree returned from parse
 interface Parser<T : NodeType> {
-    fun parse(text: Text, edit: Edit? = null): Tree<T>
+    fun parse(text: Text, edits: List<Edit> = emptyList()): ParseResult<T>
     val language: Language
 }
 
@@ -84,24 +87,21 @@ interface SyntaxHighlighter<Acc> {
     fun skip(acc: Acc, toOffset: Int): Acc
 }
 
-fun <Acc> highlightSyntax(tree: Tree<*>, init: Acc, h: SyntaxHighlighter<Acc>): Acc {
-    val changedRanges = tree[CHANGED_RANGES] ?: listOf(0 to tree.byteSize)
+fun <Acc> highlightSyntax(zip: Zipper<*>, range: BytesRange, init: Acc, h: SyntaxHighlighter<Acc>): Pair<Acc, Zipper<*>?> {
     var acc = init
-    var zip: Zipper<*>? = tree.zipper()
-    for (range in changedRanges) {
-        acc = h.skip(acc, range.first)
-        while (zip != null && zip.byteOffset < range.second) {
-            val byteEnd = zip.byteOffset + zip.byteSize
-            if (byteEnd <= range.first) {
-                zip = zip.skip()
-            } else if (zip.byteOffset < range.first && range.first < byteEnd) {
-                zip = zip.next()
-            } else {
-                acc = h.highlight(acc, zip)
-                zip = zip.next()
-            }
+    var zip: Zipper<*>? = zip
+    acc = h.skip(acc, range.first)
+    while (zip != null && zip.byteOffset < range.second) {
+        val byteEnd = zip.byteOffset + zip.byteSize
+        if (byteEnd <= range.first) {
+            zip = zip.skip()
+        } else if (zip.byteOffset < range.first && range.first < byteEnd) {
+            zip = zip.next()
+        } else {
+            acc = h.highlight(acc, zip)
+            zip = zip.next()
         }
     }
-    return acc
+    return acc to zip
 }
 

@@ -117,20 +117,43 @@ data class TSParser(val parserPtr: Ptr,
                 JSitter.releaseParser(parserPtr)
             }
 
-    override fun parse(text: Text, edit: Edit?): TSTree {
+    override fun parse(text: Text, edits: List<Edit>): ParseResult<NodeType> {
         synchronized(this) {
+            val oldTreePtr = oldTree?.treePtr
+            val oldTreeCopyPtr =
+                    if (oldTreePtr != null) {
+                        val oldTreeCopy = JSitter.copyTree(oldTreePtr)
+                        for (e in edits) {
+                            JSitter.editTree(oldTreeCopy, e.startByte, e.oldEndByte, e.newEndByte)
+                        }
+                        oldTreeCopy
+                    } else null
             val tsInput = TextInput(text, readingBuffer)
-            val treePtr = JSitter.parse(parserPtr,
-                    oldTree?.treePtr ?: 0,
+            val newTreePtr = JSitter.parse(parserPtr,
+                    oldTreeCopyPtr ?: 0,
                     tsInput,
                     text.encoding.i,
-                    readingBuffer,
-                    edit?.startByte ?: -1,
-                    edit?.oldEndByte ?: -1,
-                    edit?.newEndByte ?: -1)
-            val newTree = TSTree(treePtr, language, text, nodeType)
+                    readingBuffer)
+            val newTree = TSTree(newTreePtr, language, text, nodeType)
+            val changedRanges =
+                    if (oldTreeCopyPtr != null) {
+                        val rs = JSitter.getChangedRanges(oldTreeCopyPtr, newTreePtr)
+                        if (rs == null) {
+                            emptyList()
+                        } else {
+                            val changedRanges = arrayListOf<BytesRange>()
+                            for (i in rs.indices step 2) {
+                                changedRanges.add(rs[i] to rs[i + 1])
+                            }
+                            JSitter.releaseTree(oldTreeCopyPtr)
+                            changedRanges
+                        }
+                    } else {
+                        emptyList<BytesRange>()
+                    }
             oldTree = newTree
-            return newTree
+            return ParseResult(tree = newTree,
+                               changedRanges = changedRanges)
         }
     }
 }
@@ -237,7 +260,7 @@ private fun left(zip: TSZipper): TSZipper? =
             }
         }
 
-private fun up(zip: TSZipper) : TSZipper? =
+private fun up(zip: TSZipper): TSZipper? =
         if (zip.parent == null) {
             null
         } else {
@@ -265,7 +288,7 @@ private fun visible(zip: TSZipper): Boolean =
             }
         }
 
-private fun skip(zip: TSZipper) : TSZipper? {
+private fun skip(zip: TSZipper): TSZipper? {
     var u: TSZipper? = zip
     while (u != null) {
         val r = right(u)

@@ -96,16 +96,15 @@
         *bytes_read = read;
         return input->reading_addr;
     }
-    
-    static jmethodID read_mtd = 0;
-    
+
     /*
      * Class:     jsitter_interop_JSitter
      * Method:    parse
      * Signature: (JJLjsitter/interop/JSitter/Input;JIII)J
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parse
-    (JNIEnv *env, jclass class, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jobject reading_buffer, jint start_byte, jint old_end_byte, jint new_end_byte) {
+    (JNIEnv *env, jclass class, jlong parser_ptr, jlong old_tree_ptr, jobject input, jint encoding, jobject reading_buffer) {
+        static jmethodID read_mtd = 0;
         if (read_mtd == 0) {
             jclass input_class = (*env)->FindClass(env, "jsitter/interop/JSitter$Input");
             read_mtd = (*env)->GetMethodID(env, input_class, "read", "(I)I");
@@ -122,23 +121,45 @@
         ts_input.payload = &input_ctx;
         ts_input.read = &input_jni_read;
         
+        TSTree *old_tree = (TSTree *)old_tree_ptr;
         TSParser *parser = (TSParser *)parser_ptr;
-        if (old_tree_ptr) {
-            TSTree *old_tree = (TSTree *)old_tree_ptr;
-            TSTree *old_tree_copy = ts_tree_copy(old_tree);
-            TSInputEdit edit;
-            edit.start_byte = start_byte;
-            edit.old_end_byte = old_end_byte;
-            edit.new_end_byte = new_end_byte;
-            ts_tree_edit(old_tree_copy, &edit);
-            
-            TSTree *new_tree = ts_parser_parse(parser, old_tree_copy, ts_input);
-            ts_tree_delete(old_tree_copy);
-            return (jlong)new_tree;
+        TSTree *new_tree = ts_parser_parse(parser, old_tree, ts_input);
+        return (jlong)new_tree;
+    }
+
+    JNIEXPORT void JNICALL Java_jsitter_interop_JSitter_editTree
+    (JNIEnv *env, jclass class, jlong tree_ptr, jint start_byte, jint old_end_byte, jint new_end_byte) {
+        TSInputEdit edit;
+        edit.start_byte = start_byte;
+        edit.old_end_byte = old_end_byte;
+        edit.new_end_byte = new_end_byte;
+        ts_tree_edit((TSTree *)tree_ptr, &edit);
+     }
+
+    JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_copyTree
+    (JNIEnv *env, jclass class, jlong tree_ptr) {
+        return (jlong)ts_tree_copy((TSTree *)tree_ptr);
+    }
+
+    JNIEXPORT jintArray JNICALL Java_jsitter_interop_JSitter_getChangedRanges
+    (JNIEnv *env, jclass class, jlong edited_tree_ptr, jlong new_tree_ptr) {
+        uint32_t length;
+        TSRange *ranges = ts_tree_get_changed_ranges((TSTree *)edited_tree_ptr, (TSTree *)new_tree_ptr, &length);
+        if (length == 0) {
+            return NULL;
         } else {
-            return (jlong) ts_parser_parse(parser, NULL, ts_input);
+            uint32_t *res = (uint32_t*)malloc(2 * length);
+            for (uint32_t i = 0; i < length; ++i) {
+                res[2*i] = ranges[i].start_byte;
+                res[2*i + 1] = ranges[i].end_byte;
+            }
+            
+            jintArray result = (*env)->NewIntArray(env, 2 * length);
+            (*env)->SetIntArrayRegion(env, result, 0, 2 * length, (const jint*)res);
+            return result;
         }
     }
+
     
     /*
      * Class:     jsitter_interop_JSitter
