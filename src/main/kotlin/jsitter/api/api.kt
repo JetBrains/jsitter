@@ -84,7 +84,6 @@ interface SyntaxHighlighter<Acc> {
     fun skip(acc: Acc, toOffset: Int): Acc
 }
 
-@Suppress("NAME_SHADOWING")
 fun <Acc> highlightSyntax(tree: Tree<*>, init: Acc, h: SyntaxHighlighter<Acc>): Acc {
     val changedRanges = tree[CHANGED_RANGES] ?: listOf(0 to tree.byteSize)
     var acc = init
