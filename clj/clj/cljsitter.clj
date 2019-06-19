@@ -49,8 +49,6 @@
 (defn skip [^Zipper z]
   (.skip z))
 
-
-
 (comment
 
   (def source_file (NodeType. "source_file"))
