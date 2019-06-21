@@ -21,8 +21,6 @@ interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
     fun down(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
-    fun next(): Zipper<*>?
-    fun skip(): Zipper<*>?
 
     fun retainSubtree(): Tree<T>
 
@@ -31,6 +29,21 @@ interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
     val nodeType: T
     val language: Language
 }
+
+fun<T: NodeType> Zipper<T>.skip(): Zipper<*>? {
+    var u: Zipper<*>? = this
+    while (u != null) {
+        val r = u.right()
+        if (r != null) {
+            return r
+        } else {
+            u = u.up()
+        }
+    }
+    return null
+}
+
+fun <T: NodeType> Zipper<T>.next() : Zipper<*>? = down() ?: skip()
 
 open class NodeType(val name: String) {
     var id: Int = -1
@@ -89,16 +102,20 @@ interface SyntaxHighlighter<Acc> {
 fun <Acc> highlightSyntax(zipper: Zipper<*>, rangeStart: Int, rangeEnd: Int, init: Acc, h: SyntaxHighlighter<Acc>): Pair<Acc, Zipper<*>?> {
     var acc = init
     var zip: Zipper<*>? = zipper
-    acc = h.skip(acc, rangeStart)
-    while (zip != null && zip.byteOffset < rangeEnd) {
+    while (zip != null) {
         val byteEnd = zip.byteOffset + zip.byteSize
         if (byteEnd <= rangeStart) {
-            acc = h.skip(acc, zip.byteOffset + zip.byteSize)
+            acc = h.skip(acc, byteEnd)
             zip = zip.skip()
-        } else if (zip.byteOffset < rangeStart && rangeStart < byteEnd) {
-            zip = zip.next()
-        } else {
+        } else if (rangeStart <= zip.byteOffset && byteEnd <= rangeEnd) {
             acc = h.highlight(acc, zip)
+            zip = zip.next()
+        } else if (rangeEnd <= zip.byteOffset) {
+            break
+        } else {
+            if (zip.nodeType is Terminal) {
+                acc = h.highlight(acc, zip)
+            }
             zip = zip.next()
         }
     }

@@ -187,8 +187,14 @@ private fun down(zip: TSZipper): TSZipper? =
         }
 
 private fun right(zip: TSZipper): TSZipper? =
-        if (zip.parent == null || zip.childIndex == SubtreeAccess.childCount(zip.parent.subtree) - 1) {
+        if (zip.parent == null) {
             null
+        } else if (zip.childIndex == SubtreeAccess.childCount(zip.parent.subtree) - 1) {
+            if (visible(zip.parent)) {
+                null
+            } else {
+                right(zip.parent)
+            }
         } else {
             val sibling: Ptr = SubtreeAccess.childAt(zip.parent.subtree, zip.childIndex + 1)
             val structuralChildIndex =
@@ -288,19 +294,6 @@ private fun visible(zip: TSZipper): Boolean =
             }
         }
 
-private fun skip(zip: TSZipper): TSZipper? {
-    var u: TSZipper? = zip
-    while (u != null) {
-        val r = right(u)
-        if (r != null) {
-            return r
-        } else {
-            u = u.parent
-        }
-    }
-    return null
-}
-
 data class TSZipper(val parent: TSZipper?,
                     val parentAliasSequence: Ptr,
                     val subtree: Ptr,
@@ -326,10 +319,6 @@ data class TSZipper(val parent: TSZipper?,
     override fun left(): Zipper<*>? = left(this)
 
     override fun right(): Zipper<*>? = right(this)
-
-    override fun next(): Zipper<*>? = down(this) ?: skip(this)
-
-    override fun skip(): Zipper<*>? = skip(this)
 
     override fun retainSubtree(): Tree<NodeType> = Subtree(subtree, language)
 
