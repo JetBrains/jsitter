@@ -35,7 +35,9 @@ class Test1 {
             }
         })
 
-        val res = parser.parse(StringText("func hello() { sayHello }"), listOf(Edit(23 * 2, 25 * 2, 23 * 2)))
+        val res = parser.parse(
+                StringText("func hello() { sayHello }"),
+                Increment(tree, listOf(Edit(23 * 2, 25 * 2, 23 * 2))))
         val changedRanges = res.changedRanges
         var z: Zipper<*>? = res.tree.zipper()
         val changedNodes = arrayListOf<String>()
@@ -59,7 +61,7 @@ class Test1 {
     fun visitingTree() {
         val lang = golang()
         val parser = lang.parser(SourceFile)
-        val tree = parser.parse(StringText("func hello() { sayHello() }")).tree
+        val tree = parser.parse(text = StringText("func hello() { sayHello() }")).tree
         var zipper: Zipper<*>? = tree.zipper()
         val str = arrayListOf<String>()
         while (zipper != null) {
@@ -90,7 +92,7 @@ class Test1 {
                 .down()!!
                 .right()!!
         assertEquals("call_expression", codeBlock.nodeType.name)
-        val r = parser.parse(StringText("func bye() { sayHello() }"), listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2)))
+        val r = parser.parse(StringText("func bye() { sayHello() }"), Increment(tree, listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2))))
         var z: Zipper<*>? = r.tree.zipper()
         val str2 = arrayListOf<String>()
         while (z != null) {
@@ -112,7 +114,7 @@ class Test1 {
                 "(",
                 ")",
                 "}"), str2)
-        val r1 = parser.parse(StringText("func byeWorld() { }"), listOf(Edit(8 * 2, 8 * 2, 13 * 2), Edit(17 * 2, (17 + 11) * 2, 17 * 2)))
+        val r1 = parser.parse(StringText("func byeWorld() { }"), Increment(r.tree, listOf(Edit(8 * 2, 8 * 2, 13 * 2), Edit(17 * 2, (17 + 11) * 2, 17 * 2))))
         z = r1.tree.zipper()
         val str3 = arrayListOf<String>()
         while (z != null) {
@@ -144,7 +146,7 @@ class Test1 {
         val lang = golang()
         val parser = lang.parser(SourceFile)
         val start1 = System.nanoTime()
-        val tree = parser.parse(text).tree
+        val tree = parser.parse(text = text).tree
         val end1 = System.nanoTime()
         println("parse time = ${end1 - start1}")
         var zipper: Zipper<*>? = tree.zipper()

@@ -89,8 +89,10 @@ val CHANGED_RANGES: Key<List<BytesRange>> = Key("jsitter/changed-ranges")
 data class ParseResult<T: NodeType>(val tree: Tree<T>,
                                     val changedRanges: List<BytesRange>)
 
+data class Increment<T: NodeType>(val oldTree: Tree<T>, val edits: List<Edit>)
+
 interface Parser<T : NodeType> {
-    fun parse(text: Text, edits: List<Edit> = emptyList()): ParseResult<T>
+    fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T>
     val language: Language
 }
 

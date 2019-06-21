@@ -103,9 +103,6 @@ data class TSParser(val parserPtr: Ptr,
                     override val language: TSLanguage,
                     val nodeType: NodeType) : Parser<NodeType>, Resource {
 
-    @Volatile
-    var oldTree: TSTree? = null
-
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
     init {
@@ -117,13 +114,13 @@ data class TSParser(val parserPtr: Ptr,
                 JSitter.releaseParser(parserPtr)
             }
 
-    override fun parse(text: Text, edits: List<Edit>): ParseResult<NodeType> {
+    override fun parse(text: Text, increment: Increment<NodeType>?): ParseResult<NodeType> {
         synchronized(this) {
-            val oldTreePtr = oldTree?.treePtr
             val oldTreeCopyPtr =
-                    if (oldTreePtr != null) {
+                    if (increment != null) {
+                        val oldTreePtr = (increment.oldTree as TSTree).treePtr
                         val oldTreeCopy = JSitter.copyTree(oldTreePtr)
-                        for (e in edits) {
+                        for (e in increment.edits) {
                             JSitter.editTree(oldTreeCopy, e.startByte, e.oldEndByte, e.newEndByte)
                         }
                         oldTreeCopy
@@ -151,9 +148,8 @@ data class TSParser(val parserPtr: Ptr,
                     } else {
                         emptyList<BytesRange>()
                     }
-            oldTree = newTree
             return ParseResult(tree = newTree,
-                               changedRanges = changedRanges)
+                    changedRanges = changedRanges)
         }
     }
 }
