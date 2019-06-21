@@ -19,45 +19,6 @@ fun golang(): Language {
 class Test1 {
 
     @Test
-    fun highlighting() {
-        val lang = golang()
-        val parser = lang.parser(SourceFile)
-        val tree = parser.parse(StringText("func hello() { sayHello() }")).tree
-        val nodeTypes = arrayListOf<NodeType>()
-        highlightSyntax(tree.zipper(), 0, tree.byteSize, null, object : SyntaxHighlighter<Nothing?> {
-            override fun highlight(acc: Nothing?, zip: Zipper<*>): Nothing? {
-                nodeTypes.add(zip.nodeType)
-                return null
-            }
-
-            override fun skip(acc: Nothing?, toOffset: Int): Nothing? {
-                return null
-            }
-        })
-
-        val res = parser.parse(
-                StringText("func hello() { sayHello }"),
-                Increment(tree, listOf(Edit(23 * 2, 25 * 2, 23 * 2))))
-        val changedRanges = res.changedRanges
-        var z: Zipper<*>? = res.tree.zipper()
-        val changedNodes = arrayListOf<String>()
-        for (r in changedRanges) {
-            val (acc, zip) = highlightSyntax(z!!, r.first, r.second, null, object : SyntaxHighlighter<Nothing?> {
-                override fun highlight(acc: Nothing?, zip: Zipper<*>): Nothing? {
-                    changedNodes.add(zip.nodeType.name)
-                    return null
-                }
-
-                override fun skip(acc: Nothing?, toOffset: Int): Nothing? {
-                    return null
-                }
-            })
-            z = zip
-        }
-        assertEquals(listOf("identifier"), changedNodes)
-    }
-
-    @Test
     fun visitingTree() {
         val lang = golang()
         val parser = lang.parser(SourceFile)

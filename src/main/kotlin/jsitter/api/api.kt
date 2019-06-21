@@ -95,32 +95,3 @@ interface Parser<T : NodeType> {
     fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T>
     val language: Language
 }
-
-interface SyntaxHighlighter<Acc> {
-    fun highlight(acc: Acc, zip: Zipper<*>): Acc
-    fun skip(acc: Acc, toOffset: Int): Acc
-}
-
-fun <Acc> highlightSyntax(zipper: Zipper<*>, rangeStart: Int, rangeEnd: Int, init: Acc, h: SyntaxHighlighter<Acc>): Pair<Acc, Zipper<*>?> {
-    var acc = init
-    var zip: Zipper<*>? = zipper
-    while (zip != null) {
-        val byteEnd = zip.byteOffset + zip.byteSize
-        if (byteEnd <= rangeStart) {
-            acc = h.skip(acc, byteEnd)
-            zip = zip.skip()
-        } else if (rangeStart <= zip.byteOffset && byteEnd <= rangeEnd) {
-            acc = h.highlight(acc, zip)
-            zip = zip.next()
-        } else if (rangeEnd <= zip.byteOffset) {
-            break
-        } else {
-            if (zip.nodeType is Terminal) {
-                acc = h.highlight(acc, zip)
-            }
-            zip = zip.next()
-        }
-    }
-    return acc to zip
-}
-
