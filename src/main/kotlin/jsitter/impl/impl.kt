@@ -226,8 +226,14 @@ private fun right(zip: TSZipper): TSZipper? =
         }
 
 private fun left(zip: TSZipper): TSZipper? =
-        if (zip.parent == null || zip.childIndex == 0) {
+        if (zip.parent == null) {
             null
+        } else if (zip.childIndex == 0) {
+            if (visible(zip.parent)) {
+                null
+            } else {
+                left(zip.parent)
+            }
         } else {
             val sibling: Ptr = SubtreeAccess.childAt(zip.parent.subtree, zip.childIndex - 1)
             val structuralChildIndex =
