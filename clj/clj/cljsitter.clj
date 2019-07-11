@@ -1,5 +1,5 @@
 (ns cljsitter
-  (:import [jsitter.api Parser Language Tree Zipper NodeType]))
+  (:import [jsitter.api Parser Language Tree Zipper NodeType Terminal]))
 
 (defn ^Language language [x]
   (if (instance? Tree x)
@@ -12,9 +12,10 @@
     (.getNodeType ^Zipper x)))
 
 (defn node-type [x]
-  (let [lang (language x)
-        nt (node-type-impl x)]
-    (keyword (.getName lang) (.getName nt))))
+  (when x
+    (let [lang (language x)
+          nt (node-type-impl x)]
+      (keyword (.getName lang) (.getName nt)))))
 
 (defn byte-size [x]
   (if (instance? Tree x)
@@ -28,26 +29,43 @@
   (.getByteOffset z))
 
 (defn byte-range [z]
-  (let [o (byte-offset z)]
-    [o (+ o (byte-size z))]))
+  (when z
+    (let [o (byte-offset z)]
+      [o (+ o (byte-size z))])))
 
 (defn up [^Zipper z]
-  (.up z))
+  (when z
+    (.up z)))
 
 (defn down [^Zipper z]
-  (.down z))
+  (when z (.down z)))
 
 (defn right [^Zipper z]
-  (.right z))
+  (when z (.right z)))
 
 (defn left [^Zipper z]
-  (.left z))
+  (when z (.left z)))
 
 (defn next [^Zipper z]
-  (.next z))
+  (when z (jsitter.api.ApiKt/next z)))
 
 (defn skip [^Zipper z]
-  (.skip z))
+  (when z (jsitter.api.ApiKt/skip z)))
+
+(defn terminal? [x]
+  (when x
+    (let [lang (language x)
+          nt (node-type-impl x)]
+      (instance? Terminal nt))))
+
+
+(defn s-expr [^Zipper z]
+  (let [node-type ^NodeType (.getNodeType z)]
+    (if (instance? Terminal node-type)
+      (.getName node-type)
+      (lazy-seq (let [child (.down z)]
+                  (apply list (symbol (.getName node-type))
+                         (map s-expr (take-while some? (iterate #(.right ^Zipper %) child)))))))))
 
 (comment
 

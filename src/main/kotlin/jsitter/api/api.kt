@@ -84,8 +84,6 @@ data class Edit(val startByte: Int,
 
 typealias BytesRange = Pair<Int, Int>
 
-val CHANGED_RANGES: Key<List<BytesRange>> = Key("jsitter/changed-ranges")
-
 data class ParseResult<T: NodeType>(val tree: Tree<T>,
                                     val changedRanges: List<BytesRange>)
 

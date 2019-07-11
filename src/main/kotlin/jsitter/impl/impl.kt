@@ -31,7 +31,6 @@ typealias UserData = io.lacuna.bifurcan.Map<Key<*>, Any?>
 
 data class TSTree(val treePtr: Ptr,
                   override val language: TSLanguage,
-                  val text: Text,
                   override val nodeType: NodeType,
                   val userData: UserData = UserData()) : Tree<NodeType>, Resource {
     init {
@@ -131,7 +130,7 @@ data class TSParser(val parserPtr: Ptr,
                     tsInput,
                     text.encoding.i,
                     readingBuffer)
-            val newTree = TSTree(newTreePtr, language, text, nodeType)
+            val newTree = TSTree(newTreePtr, language, nodeType)
             val changedRanges =
                     if (oldTreeCopyPtr != null) {
                         val rs = JSitter.getChangedRanges(oldTreeCopyPtr, newTreePtr)
