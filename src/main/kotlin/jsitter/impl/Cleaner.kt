@@ -16,7 +16,7 @@ object Cleaner {
 
     val refQueue = ReferenceQueue<Resource>()
     val refs = ConcurrentHashMap<Any, Disposer>()
-    val refsCount = AtomicInteger()
+    val debugAliveRefsCount = AtomicInteger()
     val started = AtomicBoolean()
 
     fun start() {
@@ -24,8 +24,12 @@ object Cleaner {
             while (true) {
                 val key = refQueue.remove()
                 val disposer = refs.remove(key)!!
-                refsCount.decrementAndGet()
-                disposer()
+                debugAliveRefsCount.decrementAndGet()
+                try {
+                    disposer()
+                } catch(x: Throwable) {
+                    x.printStackTrace()
+                }
             }
         }, "com.jetbrains.jsitter.cleaner")
         thread.isDaemon = true
@@ -36,7 +40,7 @@ object Cleaner {
         val ref = PhantomReference(r, refQueue)
         val disposer = r.disposer()
         refs.put(ref, disposer)
-        refsCount.incrementAndGet()
+        debugAliveRefsCount.incrementAndGet()
         if (started.compareAndSet(false, true)) {
             start()
         }

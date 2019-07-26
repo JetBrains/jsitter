@@ -21,8 +21,6 @@ interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
     fun down(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
-    fun next(): Zipper<*>?
-    fun skip(): Zipper<*>?
 
     fun retainSubtree(): Tree<T>
 
@@ -31,6 +29,21 @@ interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
     val nodeType: T
     val language: Language
 }
+
+fun<T: NodeType> Zipper<T>.skip(): Zipper<*>? {
+    var u: Zipper<*>? = this
+    while (u != null) {
+        val r = u.right()
+        if (r != null) {
+            return r
+        } else {
+            u = u.up()
+        }
+    }
+    return null
+}
+
+fun <T: NodeType> Zipper<T>.next() : Zipper<*>? = down() ?: skip()
 
 open class NodeType(val name: String) {
     var id: Int = -1
@@ -71,37 +84,12 @@ data class Edit(val startByte: Int,
 
 typealias BytesRange = Pair<Int, Int>
 
-val CHANGED_RANGES: Key<List<BytesRange>> = Key("jsitter/changed-ranges")
-
 data class ParseResult<T: NodeType>(val tree: Tree<T>,
                                     val changedRanges: List<BytesRange>)
 
+data class Increment<T: NodeType>(val oldTree: Tree<T>, val edits: List<Edit>)
+
 interface Parser<T : NodeType> {
-    fun parse(text: Text, edits: List<Edit> = emptyList()): ParseResult<T>
+    fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T>
     val language: Language
 }
-
-interface SyntaxHighlighter<Acc> {
-    fun highlight(acc: Acc, zip: Zipper<*>): Acc
-    fun skip(acc: Acc, toOffset: Int): Acc
-}
-
-fun <Acc> highlightSyntax(zipper: Zipper<*>, rangeStart: Int, rangeEnd: Int, init: Acc, h: SyntaxHighlighter<Acc>): Pair<Acc, Zipper<*>?> {
-    var acc = init
-    var zip: Zipper<*>? = zipper
-    acc = h.skip(acc, rangeStart)
-    while (zip != null && zip.byteOffset < rangeEnd) {
-        val byteEnd = zip.byteOffset + zip.byteSize
-        if (byteEnd <= rangeStart) {
-            acc = h.skip(acc, zip.byteOffset + zip.byteSize)
-            zip = zip.skip()
-        } else if (zip.byteOffset < rangeStart && rangeStart < byteEnd) {
-            zip = zip.next()
-        } else {
-            acc = h.highlight(acc, zip)
-            zip = zip.next()
-        }
-    }
-    return acc to zip
-}
-

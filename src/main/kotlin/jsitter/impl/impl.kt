@@ -31,7 +31,6 @@ typealias UserData = io.lacuna.bifurcan.Map<Key<*>, Any?>
 
 data class TSTree(val treePtr: Ptr,
                   override val language: TSLanguage,
-                  val text: Text,
                   override val nodeType: NodeType,
                   val userData: UserData = UserData()) : Tree<NodeType>, Resource {
     init {
@@ -103,9 +102,6 @@ data class TSParser(val parserPtr: Ptr,
                     override val language: TSLanguage,
                     val nodeType: NodeType) : Parser<NodeType>, Resource {
 
-    @Volatile
-    var oldTree: TSTree? = null
-
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
     init {
@@ -117,13 +113,13 @@ data class TSParser(val parserPtr: Ptr,
                 JSitter.releaseParser(parserPtr)
             }
 
-    override fun parse(text: Text, edits: List<Edit>): ParseResult<NodeType> {
+    override fun parse(text: Text, increment: Increment<NodeType>?): ParseResult<NodeType> {
         synchronized(this) {
-            val oldTreePtr = oldTree?.treePtr
             val oldTreeCopyPtr =
-                    if (oldTreePtr != null) {
+                    if (increment != null) {
+                        val oldTreePtr = (increment.oldTree as TSTree).treePtr
                         val oldTreeCopy = JSitter.copyTree(oldTreePtr)
-                        for (e in edits) {
+                        for (e in increment.edits) {
                             JSitter.editTree(oldTreeCopy, e.startByte, e.oldEndByte, e.newEndByte)
                         }
                         oldTreeCopy
@@ -134,7 +130,7 @@ data class TSParser(val parserPtr: Ptr,
                     tsInput,
                     text.encoding.i,
                     readingBuffer)
-            val newTree = TSTree(newTreePtr, language, text, nodeType)
+            val newTree = TSTree(newTreePtr, language, nodeType)
             val changedRanges =
                     if (oldTreeCopyPtr != null) {
                         val rs = JSitter.getChangedRanges(oldTreeCopyPtr, newTreePtr)
@@ -151,9 +147,8 @@ data class TSParser(val parserPtr: Ptr,
                     } else {
                         emptyList<BytesRange>()
                     }
-            oldTree = newTree
             return ParseResult(tree = newTree,
-                               changedRanges = changedRanges)
+                    changedRanges = changedRanges)
         }
     }
 }
@@ -187,8 +182,14 @@ private fun down(zip: TSZipper): TSZipper? =
         }
 
 private fun right(zip: TSZipper): TSZipper? =
-        if (zip.parent == null || zip.childIndex == SubtreeAccess.childCount(zip.parent.subtree) - 1) {
+        if (zip.parent == null) {
             null
+        } else if (zip.childIndex == SubtreeAccess.childCount(zip.parent.subtree) - 1) {
+            if (visible(zip.parent)) {
+                null
+            } else {
+                right(zip.parent)
+            }
         } else {
             val sibling: Ptr = SubtreeAccess.childAt(zip.parent.subtree, zip.childIndex + 1)
             val structuralChildIndex =
@@ -224,8 +225,14 @@ private fun right(zip: TSZipper): TSZipper? =
         }
 
 private fun left(zip: TSZipper): TSZipper? =
-        if (zip.parent == null || zip.childIndex == 0) {
+        if (zip.parent == null) {
             null
+        } else if (zip.childIndex == 0) {
+            if (visible(zip.parent)) {
+                null
+            } else {
+                left(zip.parent)
+            }
         } else {
             val sibling: Ptr = SubtreeAccess.childAt(zip.parent.subtree, zip.childIndex - 1)
             val structuralChildIndex =
@@ -288,19 +295,6 @@ private fun visible(zip: TSZipper): Boolean =
             }
         }
 
-private fun skip(zip: TSZipper): TSZipper? {
-    var u: TSZipper? = zip
-    while (u != null) {
-        val r = right(u)
-        if (r != null) {
-            return r
-        } else {
-            u = u.parent
-        }
-    }
-    return null
-}
-
 data class TSZipper(val parent: TSZipper?,
                     val parentAliasSequence: Ptr,
                     val subtree: Ptr,
@@ -326,10 +320,6 @@ data class TSZipper(val parent: TSZipper?,
     override fun left(): Zipper<*>? = left(this)
 
     override fun right(): Zipper<*>? = right(this)
-
-    override fun next(): Zipper<*>? = down(this) ?: skip(this)
-
-    override fun skip(): Zipper<*>? = skip(this)
 
     override fun retainSubtree(): Tree<NodeType> = Subtree(subtree, language)
 
