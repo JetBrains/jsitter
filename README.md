@@ -26,11 +26,6 @@ https://github.com/tree-sitter/tree-sitter/pull/360#issuecomment-501686115
 
 ```
 $ git submodule update --init --recursive
-$ cd native
-$ mkdir build
-$ cd build
-$ cmake ..
-$ make
-$ cd ../../
+$ ./make.sh 
 $ mvn install
 ```
