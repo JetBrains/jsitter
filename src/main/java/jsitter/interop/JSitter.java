@@ -51,5 +51,5 @@ public class JSitter {
     @Nullable
     public static native int[] getChangedRanges(long editedTreePtr, long newTreePtr);
 
-    public static native long newParser(long languagePtr);
+    public static native long newParser(long languagePtr, long cancellationFlagPtr);
 }

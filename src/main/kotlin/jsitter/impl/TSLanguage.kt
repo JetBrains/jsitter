@@ -43,10 +43,13 @@ class TSLanguage(val languagePtr: Ptr,
 
     override fun nodeType(name: String): NodeType = registry[name]!!
 
-    override fun<T: NodeType> parser(nodeType: T): Parser<T> =
-            TSParser(parserPtr = JSitter.newParser(languagePtr),
-                    language = this,
-                    nodeType = nodeType) as Parser<T>
+    override fun<T: NodeType> parser(nodeType: T): Parser<T> {
+        val cancellationFlagPtr = SubtreeAccess.unsafe.allocateMemory(8)
+        return TSParser(parserPtr = JSitter.newParser(languagePtr, cancellationFlagPtr),
+                language = this,
+                nodeType = nodeType,
+                cancellationFlagPtr = cancellationFlagPtr) as Parser<T>
+    }
 
     override fun register(nodeType: NodeType) {
         registry[nodeType.name] = nodeType

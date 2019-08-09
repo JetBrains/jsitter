@@ -89,7 +89,33 @@ data class ParseResult<T: NodeType>(val tree: Tree<T>,
 
 data class Increment<T: NodeType>(val oldTree: Tree<T>, val edits: List<Edit>)
 
+class CancellationToken {
+    @Volatile
+    internal var cancelled = false
+    @Volatile
+    internal var handler: (() -> Unit)? = null
+
+    fun cancel() {
+        synchronized(this) {
+            if (!cancelled) {
+                cancelled = true
+                val h = handler
+                if (h != null) {
+                    h()
+                }
+            }
+        }
+    }
+
+    internal fun onCancel(f: () -> Unit) {
+        synchronized(this) {
+            handler = f
+        }
+    }
+}
+
 interface Parser<T : NodeType> {
-    fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T>
+    fun parse(text: Text, cancellationToken: CancellationToken?, increment: Increment<T>? = null): ParseResult<T>?
+    fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T> = parse(text, null, increment)!!
     val language: Language
 }

@@ -167,8 +167,9 @@
      * Signature: (J)J
      */
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_newParser
-    (JNIEnv * env, jclass class, jlong language_ptr) {
+    (JNIEnv * env, jclass class, jlong language_ptr, jlong cancellationFlagPtr) {
         TSParser *parser = ts_parser_new();
+        ts_parser_set_cancellation_flag(parser, (size_t *)cancellationFlagPtr);
         ts_parser_set_language(parser, (TSLanguage *)language_ptr);
         return (jlong) parser;
     }

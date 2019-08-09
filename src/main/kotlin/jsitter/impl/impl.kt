@@ -100,7 +100,8 @@ data class Subtree(val subtree: Ptr,
 
 data class TSParser(val parserPtr: Ptr,
                     override val language: TSLanguage,
-                    val nodeType: NodeType) : Parser<NodeType>, Resource {
+                    val nodeType: NodeType,
+                    val cancellationFlagPtr: Ptr) : Parser<NodeType>, Resource {
 
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
@@ -111,10 +112,18 @@ data class TSParser(val parserPtr: Ptr,
     override fun disposer(): Disposer =
             {
                 JSitter.releaseParser(parserPtr)
+                SubtreeAccess.unsafe.freeMemory(cancellationFlagPtr)
             }
 
-    override fun parse(text: Text, increment: Increment<NodeType>?): ParseResult<NodeType> {
+    override fun parse(text: Text, cancellationToken: CancellationToken?, increment: Increment<NodeType>?): ParseResult<NodeType>? {
         synchronized(this) {
+            SubtreeAccess.unsafe.putLong(cancellationFlagPtr, 0)
+            cancellationToken?.onCancel {
+                SubtreeAccess.unsafe.putLong(cancellationFlagPtr, 1)
+            }
+            if (cancellationToken?.cancelled == true) {
+                return null
+            }
             val oldTreeCopyPtr =
                     if (increment != null) {
                         val oldTreePtr = (increment.oldTree as TSTree).treePtr
@@ -125,11 +134,17 @@ data class TSParser(val parserPtr: Ptr,
                         oldTreeCopy
                     } else null
             val tsInput = TextInput(text, readingBuffer)
+            if (cancellationToken?.cancelled == true) {
+                return null
+            }
             val newTreePtr = JSitter.parse(parserPtr,
                     oldTreeCopyPtr ?: 0,
                     tsInput,
                     text.encoding.i,
                     readingBuffer)
+            if (newTreePtr == 0L) {
+                return null
+            }
             val newTree = TSTree(newTreePtr, language, nodeType)
             val changedRanges =
                     if (oldTreeCopyPtr != null) {
@@ -147,8 +162,7 @@ data class TSParser(val parserPtr: Ptr,
                     } else {
                         emptyList<BytesRange>()
                     }
-            return ParseResult(tree = newTree,
-                    changedRanges = changedRanges)
+            return ParseResult(newTree, changedRanges)
         }
     }
 }
