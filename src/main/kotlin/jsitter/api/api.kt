@@ -95,6 +95,7 @@ class CancellationToken {
     @Volatile
     internal var handler: (() -> Unit)? = null
 
+    fun isCancelled() = cancelled
     fun cancel() {
         synchronized(this) {
             if (!cancelled) {

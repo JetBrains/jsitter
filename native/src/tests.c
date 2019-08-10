@@ -88,37 +88,42 @@ void ranges() {
     printf("New Syntax tree: %s\n", new_string3);
 }
 
+void str_insert(size_t index, char c, char *str, size_t size) {
+  memmove(str + index + 1, str + index, size - index);
+  str[index] = c;
+}
+
+void test_crash() {
+  FILE *f = fopen("/Users/jetzajac/Projects/jsitter/testData/router_go", "r");
+  fseek (f, 0, SEEK_END);
+  size_t s = ftell(f);
+  rewind(f);
+  void *b = malloc(s + 1001);
+  fread(b, s, 1, f);
+  TSParser *parser = ts_parser_new();
+  ts_parser_set_language(parser, tree_sitter_go());
+  TSTree *tree = ts_parser_parse_string(parser,
+                                        NULL,
+                                        (const char *)b,
+                                        s);
+  
+  for (int i = 0; i < 1000; ++i) {
+    //str_insert(1000 + i, 'x', b, s + i);
+    TSTree *copy = ts_tree_copy(tree);
+    TSInputEdit e; // + 8
+    e.start_byte = 1000;
+    e.old_end_byte = 1000;
+    e.new_end_byte = 1000 + i;
+    ts_tree_edit(copy, &e);
+    TSTree *new_tree = ts_parser_parse_string(parser, tree, b, s + i);
+    ts_tree_delete(new_tree);
+  }
+}
+
 
 int main () {
     ranges();
-    TSParser *parser = ts_parser_new();
-    TSLanguage *lang = tree_sitter_go();
-    ts_parser_set_language(parser, lang);
-//    const char *str = "{\"abc\": [12, \"hello\", {\"cde\": 1}], 1: 2}";
-    const char *str_go = "func hello() { sayHello() }";
-    TSTree *tree = ts_parser_parse_string(
-                                          parser,
-                                          NULL,
-                                          str_go,
-                                          strlen(str_go)
-                                          );
-    TSNode root_node = ts_tree_root_node(tree);
-    char *string = ts_node_string(root_node);
-    printf("Syntax tree: %s\n", string);
-    TSZipper zipper;
-    ts_zipper_new(tree, &zipper);
-    TSZipper *prev = (TSZipper *)malloc(sizeof(TSZipper));
-    *prev = zipper;
-    while (true)  {
-        TSZipper *r = (TSZipper *)malloc(sizeof(TSZipper));
-        bool res = ts_zipper_next(prev, r, lang);
-        if (!res) {
-            break;
-        }
-        prev = r;
-        TSSymbol s = ts_zipper_node_type(r);
-        printf("%s\n", ts_language_symbol_name(lang, s));
-    }
+    test_crash();
     perf();
     return 0;
 }

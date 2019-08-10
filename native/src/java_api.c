@@ -123,7 +123,7 @@
         
         TSTree *old_tree = (TSTree *)old_tree_ptr;
         TSParser *parser = (TSParser *)parser_ptr;
-        ts_parser_reset(parser);
+
         TSTree *new_tree = ts_parser_parse(parser, old_tree, ts_input);
         return (jlong)new_tree;
     }
@@ -161,6 +161,10 @@
         }
     }
 
+JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parserReset
+(JNIEnv * env, jclass class, jlong parser_ptr) {
+  ts_parser_reset((TSParser *)parser_ptr);
+}
     
     /*
      * Class:     jsitter_interop_JSitter

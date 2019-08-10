@@ -7,6 +7,7 @@ import org.junit.Test
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.*
 
 object SourceFile : NodeType("source_file")
 
@@ -127,6 +128,30 @@ class Test1 {
         }
         val end = System.nanoTime()
         println("walk2 time = ${end - start}")
+
+        val morebytes = ByteArray(bytes.size + 10001)
+
+        System.arraycopy(bytes, 0, morebytes, 0, bytes.size)
+
+        Arrays.fill(morebytes, bytes.size, morebytes.size, 20.toByte())
+        var size = bytes.size
+        val text1 = object : Text {
+            override fun read(byteOffset: Int, output: ByteBuffer) {
+                output.put(morebytes, byteOffset,
+                        Math.min(size+1 - byteOffset, output.limit()))
+            }
+
+            override val encoding: Encoding = Encoding.UTF8
+        }
+//        var t = tree
+        for (i in (0 .. 1000)) {
+            val r = parser.parse(
+                    text = text1,
+                    increment = Increment(
+                            oldTree = tree,
+                            edits = listOf(Edit(bytes.size, bytes.size, size+1))))
+            size++
+        }
     }
 }
 

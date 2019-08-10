@@ -50,10 +50,16 @@ data class TSTree(val treePtr: Ptr,
                     childIndex = 0,
                     root = this)
 
-    override fun disposer(): Disposer =
-            {
-                JSitter.releaseTree(treePtr)
-            }
+    override fun disposer(): Disposer {
+        val treePtr = this.treePtr
+        return {
+            JSitter.releaseTree(treePtr)
+        }
+    }
+
+    fun sudorelease() {
+        JSitter.releaseTree(treePtr)
+    }
 
     override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
             copy(userData = userData.put(k, v))
@@ -69,10 +75,12 @@ data class Subtree(val subtree: Ptr,
         Cleaner.register(this)
     }
 
-    override fun disposer(): Disposer =
-            {
-                JSitter.releaseSubtree(subtree)
-            }
+    override fun disposer(): Disposer {
+        val subtreePtr = this.subtree
+        return {
+            JSitter.releaseSubtree(subtreePtr)
+        }
+    }
 
     override val nodeType: NodeType by lazy {
         language.getNodeType(SubtreeAccess.subtreeNodeType(subtree))
@@ -109,11 +117,14 @@ data class TSParser(val parserPtr: Ptr,
         Cleaner.register(this)
     }
 
-    override fun disposer(): Disposer =
-            {
-                JSitter.releaseParser(parserPtr)
-                SubtreeAccess.unsafe.freeMemory(cancellationFlagPtr)
-            }
+    override fun disposer(): Disposer {
+        val parserPtr = this.parserPtr
+        val cancellationFlagPtr = this.cancellationFlagPtr
+        return {
+            JSitter.releaseParser(parserPtr)
+            SubtreeAccess.unsafe.freeMemory(cancellationFlagPtr)
+        }
+    }
 
     override fun parse(text: Text, cancellationToken: CancellationToken?, increment: Increment<NodeType>?): ParseResult<NodeType>? {
         synchronized(this) {
@@ -135,6 +146,9 @@ data class TSParser(val parserPtr: Ptr,
                     } else null
             val tsInput = TextInput(text, readingBuffer)
             if (cancellationToken?.cancelled == true) {
+                if (oldTreeCopyPtr != null) {
+                    JSitter.releaseTree(oldTreeCopyPtr)
+                }
                 return null
             }
             val newTreePtr = JSitter.parse(parserPtr,
@@ -142,12 +156,8 @@ data class TSParser(val parserPtr: Ptr,
                     tsInput,
                     text.encoding.i,
                     readingBuffer)
-            if (newTreePtr == 0L) {
-                return null
-            }
-            val newTree = TSTree(newTreePtr, language, nodeType)
             val changedRanges =
-                    if (oldTreeCopyPtr != null) {
+                    if (oldTreeCopyPtr != null && newTreePtr != 0L) {
                         val rs = JSitter.getChangedRanges(oldTreeCopyPtr, newTreePtr)
                         if (rs == null) {
                             emptyList()
@@ -156,12 +166,23 @@ data class TSParser(val parserPtr: Ptr,
                             for (i in rs.indices step 2) {
                                 changedRanges.add(rs[i] to rs[i + 1])
                             }
-                            JSitter.releaseTree(oldTreeCopyPtr)
                             changedRanges
                         }
                     } else {
                         emptyList<BytesRange>()
                     }
+            if (oldTreeCopyPtr != null) {
+                JSitter.releaseTree(oldTreeCopyPtr)
+            }
+            if (newTreePtr == 0L) {
+                JSitter.parserReset(parserPtr)
+                return null
+            }
+            if (cancellationToken?.cancelled == true) {
+                JSitter.releaseTree(newTreePtr)
+                return null
+            }
+            val newTree = TSTree(newTreePtr, language, nodeType)
             return ParseResult(newTree, changedRanges)
         }
     }
