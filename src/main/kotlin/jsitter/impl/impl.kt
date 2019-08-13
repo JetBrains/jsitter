@@ -2,6 +2,8 @@ package jsitter.impl
 
 import jsitter.api.*
 import jsitter.interop.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentMap
 
 import java.nio.ByteBuffer
 
@@ -10,10 +12,66 @@ const val READING_BUFFER_CAPACITY = 1024 * 1024
 class TextInput(val text: Text,
                 val readingBuffer: ByteBuffer) : JSitter.Input {
     override fun read(byteOffset: Int): Int {
-        text.read(byteOffset, readingBuffer)
-        val bytesCount = readingBuffer.position()
-        readingBuffer.rewind()
-        return bytesCount
+        try {
+            text.read(byteOffset, readingBuffer)
+            val bytesCount = readingBuffer.position()
+            readingBuffer.rewind()
+            return bytesCount
+        } catch (x: Throwable) {
+            System.err.println(x);
+            return 0;
+        }
+    }
+}
+
+typealias TSSymbol = Int
+
+class TSLanguage(val languagePtr: Ptr,
+                 override val name: String,
+                 val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
+                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language {
+
+    fun getNodeType(tsSymbol: TSSymbol): NodeType =
+            nodeTypesCache.computeIfAbsent(tsSymbol) { symbol ->
+                if (symbol.toInt() == -1) {
+                    Error
+                } else {
+                    val name: String = JSitter.getSymbolName(languagePtr, symbol)
+                    val isTerminal: Boolean = JSitter.isTerminal(languagePtr, symbol)
+                    val nodeType = registry.computeIfAbsent(name) { name ->
+                        if (isTerminal) {
+                            Terminal(name)
+                        } else {
+                            NodeType(name)
+                        }
+                    }
+                    nodeType.id = symbol.toInt()
+                    nodeType
+                }
+            }
+
+    fun getNodeTypeSymbol(nodeType: NodeType): TSSymbol =
+            if (nodeType.initialized) {
+                nodeType.id
+            } else {
+                val symbol: TSSymbol = JSitter.getSymbolByName(languagePtr, nodeType.name)
+                nodeType.id = symbol
+                nodeType.initialized = true
+                symbol
+            }
+
+    override fun nodeType(name: String): NodeType = registry[name]!!
+
+    override fun <T : NodeType> parser(nodeType: T): Parser<T> {
+        val cancellationFlagPtr = SubtreeAccess.unsafe.allocateMemory(8)
+        return TSParser(parserPtr = JSitter.newParser(languagePtr, cancellationFlagPtr),
+                language = this,
+                nodeType = nodeType,
+                cancellationFlagPtr = cancellationFlagPtr) as Parser<T>
+    }
+
+    override fun register(nodeType: NodeType) {
+        registry[nodeType.name] = nodeType
     }
 }
 
@@ -27,12 +85,10 @@ fun loadTSLanguage(name: String): TSLanguage? {
     }
 }
 
-typealias UserData = io.lacuna.bifurcan.Map<Key<*>, Any?>
-
 data class TSTree(val treePtr: Ptr,
                   override val language: TSLanguage,
-                  override val nodeType: NodeType,
-                  val userData: UserData = UserData()) : Tree<NodeType>, Resource {
+                  override val nodeType: NodeType) : Tree<NodeType>, Resource {
+
     init {
         Cleaner.register(this)
     }
@@ -61,15 +117,40 @@ data class TSTree(val treePtr: Ptr,
         JSitter.releaseTree(treePtr)
     }
 
-    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
-            copy(userData = userData.put(k, v))
+    override fun adjust(edits: List<Edit>): Tree<NodeType> {
+        val treeCopy = JSitter.copyTree(this.treePtr)
+        for (e in edits) {
+            JSitter.editTree(treeCopy, e.startByte, e.oldEndByte, e.newEndByte)
+        }
+        return TSTree(treeCopy, language, nodeType)
+    }
 
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
+    override fun getChangedRanges(newTree: Tree<NodeType>): List<BytesRange> {
+        val rs = JSitter.getChangedRanges(this.treePtr, (newTree as TSTree).treePtr)
+        return if (rs == null) {
+            emptyList()
+        } else {
+            val changedRanges = arrayListOf<BytesRange>()
+            for (i in rs.indices step 2) {
+                changedRanges.add(rs[i] to rs[i + 1])
+            }
+            changedRanges
+        }
+    }
 }
 
 data class Subtree(val subtree: Ptr,
-                   override val language: TSLanguage,
-                   val userData: UserData = UserData()) : Tree<NodeType>, Resource {
+                   override val language: TSLanguage) : SubTree<NodeType>, Resource {
+
+    override fun adjust(edits: List<Edit>): SubTree<NodeType> {
+        var treeCopy = this.subtree
+        JSitter.retainSubtree(treeCopy)
+        for (e in edits) {
+            treeCopy = JSitter.editSubtree(treeCopy, e.startByte, e.oldEndByte, e.newEndByte)
+        }
+        return Subtree(treeCopy, this.language)
+    }
+
     init {
         JSitter.retainSubtree(subtree)
         Cleaner.register(this)
@@ -98,11 +179,6 @@ data class Subtree(val subtree: Ptr,
                     byteOffset = 0,
                     childIndex = 0,
                     root = this)
-
-    override fun <U> assoc(k: Key<U>, v: U): Tree<NodeType> =
-            copy(userData = userData.put(k, v))
-
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
 }
 
 
@@ -110,7 +186,6 @@ data class TSParser(val parserPtr: Ptr,
                     override val language: TSLanguage,
                     val nodeType: NodeType,
                     val cancellationFlagPtr: Ptr) : Parser<NodeType>, Resource {
-
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
     init {
@@ -126,7 +201,7 @@ data class TSParser(val parserPtr: Ptr,
         }
     }
 
-    override fun parse(text: Text, cancellationToken: CancellationToken?, increment: Increment<NodeType>?): ParseResult<NodeType>? {
+    override fun parse(text: Text, adjustedTree: Tree<NodeType>?, cancellationToken: CancellationToken?): Tree<NodeType>? {
         synchronized(this) {
             SubtreeAccess.unsafe.putLong(cancellationFlagPtr, 0)
             cancellationToken?.onCancel {
@@ -135,55 +210,26 @@ data class TSParser(val parserPtr: Ptr,
             if (cancellationToken?.cancelled == true) {
                 return null
             }
-            val oldTreeCopyPtr =
-                    if (increment != null) {
-                        val oldTreePtr = (increment.oldTree as TSTree).treePtr
-                        val oldTreeCopy = JSitter.copyTree(oldTreePtr)
-                        for (e in increment.edits) {
-                            JSitter.editTree(oldTreeCopy, e.startByte, e.oldEndByte, e.newEndByte)
-                        }
-                        oldTreeCopy
-                    } else null
             val tsInput = TextInput(text, readingBuffer)
             if (cancellationToken?.cancelled == true) {
-                if (oldTreeCopyPtr != null) {
-                    JSitter.releaseTree(oldTreeCopyPtr)
-                }
                 return null
             }
-            val newTreePtr = JSitter.parse(parserPtr,
-                    oldTreeCopyPtr ?: 0,
+            val oldTreePtr = (adjustedTree as TSTree?)?.treePtr
+            val newTreePtr = JSitter.parse(
+                    parserPtr,
+                    oldTreePtr ?: 0,
                     tsInput,
                     text.encoding.i,
                     readingBuffer)
-            val changedRanges =
-                    if (oldTreeCopyPtr != null && newTreePtr != 0L) {
-                        val rs = JSitter.getChangedRanges(oldTreeCopyPtr, newTreePtr)
-                        if (rs == null) {
-                            emptyList()
-                        } else {
-                            val changedRanges = arrayListOf<BytesRange>()
-                            for (i in rs.indices step 2) {
-                                changedRanges.add(rs[i] to rs[i + 1])
-                            }
-                            changedRanges
-                        }
-                    } else {
-                        emptyList<BytesRange>()
-                    }
-            if (oldTreeCopyPtr != null) {
-                JSitter.releaseTree(oldTreeCopyPtr)
-            }
+            JSitter.parserReset(parserPtr)
             if (newTreePtr == 0L) {
-                JSitter.parserReset(parserPtr)
                 return null
             }
             if (cancellationToken?.cancelled == true) {
                 JSitter.releaseTree(newTreePtr)
                 return null
             }
-            val newTree = TSTree(newTreePtr, language, nodeType)
-            return ParseResult(newTree, changedRanges)
+            return TSTree(newTreePtr, language, nodeType)
         }
     }
 }
@@ -336,8 +382,7 @@ data class TSZipper(val parent: TSZipper?,
                     override val byteOffset: Int,
                     val childIndex: Int,
                     val structuralChildIndex: Int,
-                    val root: Tree<*>,
-                    val userData: UserData = UserData()) : Zipper<NodeType> {
+                    val root: SubTree<*>) : Zipper<NodeType> {
     override val byteSize: Int
         get() = SubtreeAccess.subtreeBytesSize(subtree)
 
@@ -356,10 +401,6 @@ data class TSZipper(val parent: TSZipper?,
 
     override fun right(): Zipper<*>? = right(this)
 
-    override fun retainSubtree(): Tree<NodeType> = Subtree(subtree, language)
-
-    override fun <U> assoc(k: Key<U>, v: U): TSZipper = copy(userData = userData.put(k, v))
-
-    override fun <U> get(k: Key<U>): U? = userData.get(k) as U?
+    override fun retainSubtree(): SubTree<NodeType> = Subtree(subtree, language)
 }
 

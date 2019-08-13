@@ -98,7 +98,7 @@ void test_crash() {
   fseek (f, 0, SEEK_END);
   size_t s = ftell(f);
   rewind(f);
-  void *b = malloc(s + 1001);
+  void *b = malloc(s + 1000);
   fread(b, s, 1, f);
   TSParser *parser = ts_parser_new();
   ts_parser_set_language(parser, tree_sitter_go());
@@ -106,24 +106,28 @@ void test_crash() {
                                         NULL,
                                         (const char *)b,
                                         s);
-  
-  for (int i = 0; i < 1000; ++i) {
+  TSTree *copy = ts_tree_copy(tree);
+  //for (int i = 0; i < 100; ++i) {
+  int i = 2; {
+    printf("i = %d\n", i);
     //str_insert(1000 + i, 'x', b, s + i);
     TSTree *copy = ts_tree_copy(tree);
     TSInputEdit e; // + 8
-    e.start_byte = 1000;
-    e.old_end_byte = 1000;
-    e.new_end_byte = 1000 + i;
+    e.start_byte = 2000;
+    e.old_end_byte = 2000;
+    e.new_end_byte = 2000 + i;
     ts_tree_edit(copy, &e);
-    TSTree *new_tree = ts_parser_parse_string(parser, tree, b, s + i);
+    TSTree *new_tree = ts_parser_parse_string(parser, copy, b, s);
+    ts_tree_delete(copy);
     ts_tree_delete(new_tree);
+    ts_parser_reset(parser);
   }
 }
 
 
 int main () {
-    ranges();
+  //    ranges();
     test_crash();
-    perf();
+    //perf();
     return 0;
 }

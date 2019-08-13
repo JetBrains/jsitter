@@ -137,6 +137,21 @@
         ts_tree_edit((TSTree *)tree_ptr, &edit);
      }
 
+  JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_editSubtree
+    (JNIEnv *env, jclass class, jlong subtree_ptr, jint start_byte, jint old_end_byte, jint new_end_byte) {
+        Subtree subtree = *(Subtree *)(&subtree_ptr);
+        TSInputEdit edit;
+        edit.start_byte = start_byte;
+        edit.old_end_byte = old_end_byte;
+        edit.new_end_byte = new_end_byte;
+        
+        SubtreePool pool = ts_subtree_pool_new(0);
+        Subtree result = ts_subtree_edit(subtree, &edit, &pool);
+        ts_subtree_pool_delete(&pool);
+        return *((jlong *)&result);
+     }
+
+
     JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_copyTree
     (JNIEnv *env, jclass class, jlong tree_ptr) {
         return (jlong)ts_tree_copy((TSTree *)tree_ptr);

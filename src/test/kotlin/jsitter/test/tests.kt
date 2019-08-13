@@ -1,13 +1,11 @@
 package jsitter.test
 
 import jsitter.api.*
-
 import junit.framework.Assert.assertEquals
 import org.junit.Test
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.*
 
 object SourceFile : NodeType("source_file")
 
@@ -18,12 +16,11 @@ fun golang(): Language {
 }
 
 class Test1 {
-
     @Test
     fun visitingTree() {
         val lang = golang()
         val parser = lang.parser(SourceFile)
-        val tree = parser.parse(text = StringText("func hello() { sayHello() }")).tree
+        var tree = parser.parse(StringText("func hello() { sayHello() }"))
         var zipper: Zipper<*>? = tree.zipper()
         val str = arrayListOf<String>()
         while (zipper != null) {
@@ -54,8 +51,9 @@ class Test1 {
                 .down()!!
                 .right()!!
         assertEquals("call_expression", codeBlock.nodeType.name)
-        val r = parser.parse(StringText("func bye() { sayHello() }"), Increment(tree, listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2))))
-        var z: Zipper<*>? = r.tree.zipper()
+        tree = tree.adjust(listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2)))
+        tree = parser.parse(StringText("func bye() { sayHello() }"), adjustedTree = tree)
+        var z: Zipper<*>? = tree.zipper()
         val str2 = arrayListOf<String>()
         while (z != null) {
             str2 += z.nodeType.toString()
@@ -76,8 +74,9 @@ class Test1 {
                 "(",
                 ")",
                 "}"), str2)
-        val r1 = parser.parse(StringText("func byeWorld() { }"), Increment(r.tree, listOf(Edit(8 * 2, 8 * 2, 13 * 2), Edit(17 * 2, (17 + 11) * 2, 17 * 2))))
-        z = r1.tree.zipper()
+        tree = tree.adjust(listOf(Edit(8 * 2, 8 * 2, 13 * 2), Edit(17 * 2, (17 + 11) * 2, 17 * 2)))
+        tree = parser.parse(StringText("func byeWorld() { }"), adjustedTree = tree)
+        z = tree.zipper()
         val str3 = arrayListOf<String>()
         while (z != null) {
             str3 += z.nodeType.toString()
@@ -108,7 +107,7 @@ class Test1 {
         val lang = golang()
         val parser = lang.parser(SourceFile)
         val start1 = System.nanoTime()
-        val tree = parser.parse(text = text).tree
+        val tree = parser.parse(text)
         val end1 = System.nanoTime()
         println("parse time = ${end1 - start1}")
         var zipper: Zipper<*>? = tree.zipper()
@@ -128,30 +127,6 @@ class Test1 {
         }
         val end = System.nanoTime()
         println("walk2 time = ${end - start}")
-
-        val morebytes = ByteArray(bytes.size + 10001)
-
-        System.arraycopy(bytes, 0, morebytes, 0, bytes.size)
-
-        Arrays.fill(morebytes, bytes.size, morebytes.size, 20.toByte())
-        var size = bytes.size
-        val text1 = object : Text {
-            override fun read(byteOffset: Int, output: ByteBuffer) {
-                output.put(morebytes, byteOffset,
-                        Math.min(size+1 - byteOffset, output.limit()))
-            }
-
-            override val encoding: Encoding = Encoding.UTF8
-        }
-//        var t = tree
-        for (i in (0 .. 1000)) {
-            val r = parser.parse(
-                    text = text1,
-                    increment = Increment(
-                            oldTree = tree,
-                            edits = listOf(Edit(bytes.size, bytes.size, size+1))))
-            size++
-        }
     }
 }
 

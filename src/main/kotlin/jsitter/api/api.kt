@@ -2,33 +2,36 @@ package jsitter.api
 
 import java.nio.ByteBuffer
 
-data class Key<T>(val key: Any)
-
-interface DataHolder<out T> {
-    fun <U> assoc(k: Key<U>, v: U): T
-    operator fun <U> get(k: Key<U>): U?
-}
-
-interface Tree<out T : NodeType> : DataHolder<Tree<T>> {
+interface SubTree<out T : NodeType> {
     val language: Language
     val nodeType: T
     val byteSize: Int
     fun zipper(): Zipper<T>
+    fun adjust(edits: List<Edit>): SubTree<T>
 }
 
-interface Zipper<out T : NodeType> : DataHolder<Zipper<T>> {
+interface Tree<T : NodeType>: SubTree<T> {
+    override fun adjust(edits: List<Edit>): Tree<T>
+    fun getChangedRanges(newTree: Tree<T>): List<BytesRange>
+}
+
+interface Zipper<out T : NodeType> {
     fun up(): Zipper<*>?
     fun down(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
 
-    fun retainSubtree(): Tree<T>
+    fun retainSubtree(): SubTree<T>
 
     val byteOffset: Int
     val byteSize: Int
     val nodeType: T
     val language: Language
 }
+
+data class Edit(val startByte: Int,
+                val oldEndByte: Int,
+                val newEndByte: Int)
 
 fun<T: NodeType> Zipper<T>.skip(): Zipper<*>? {
     var u: Zipper<*>? = this
@@ -78,16 +81,7 @@ interface Text {
     val encoding: Encoding
 }
 
-data class Edit(val startByte: Int,
-                val oldEndByte: Int,
-                val newEndByte: Int)
-
 typealias BytesRange = Pair<Int, Int>
-
-data class ParseResult<T: NodeType>(val tree: Tree<T>,
-                                    val changedRanges: List<BytesRange>)
-
-data class Increment<T: NodeType>(val oldTree: Tree<T>, val edits: List<Edit>)
 
 class CancellationToken {
     @Volatile
@@ -116,7 +110,7 @@ class CancellationToken {
 }
 
 interface Parser<T : NodeType> {
-    fun parse(text: Text, cancellationToken: CancellationToken?, increment: Increment<T>? = null): ParseResult<T>?
-    fun parse(text: Text, increment: Increment<T>? = null): ParseResult<T> = parse(text, null, increment)!!
+    fun parse(text: Text, adjustedTree: Tree<T>? = null, cancellationToken: CancellationToken?): Tree<T>?
+    fun parse(text: Text, adjustedTree: Tree<T>? = null): Tree<T> = this.parse(text, adjustedTree, null)!!
     val language: Language
 }

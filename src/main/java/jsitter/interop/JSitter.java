@@ -48,6 +48,8 @@ public class JSitter {
 
     public static native void editTree(long treePtr, int startByte, int oldEndByte, int newEndByte);
 
+    public static native long editSubtree(long subtree, int startByte, int oldEndByte, int newEndByte);
+
     @Nullable
     public static native int[] getChangedRanges(long editedTreePtr, long newTreePtr);
 
