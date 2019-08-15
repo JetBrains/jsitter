@@ -21,6 +21,7 @@ interface Zipper<out T : NodeType> {
     fun down(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
+    fun next(): Zipper<*>? = down() ?: skip()
 
     fun retainSubtree(): Node<T>
     val node: Node<T>
@@ -44,8 +45,6 @@ fun <T : NodeType> Zipper<T>.skip(): Zipper<*>? {
     }
     return null
 }
-
-fun <T : NodeType> Zipper<T>.next(): Zipper<*>? = down() ?: skip()
 
 open class NodeType(val name: String) {
     var id: Int = -1
