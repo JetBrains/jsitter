@@ -2,17 +2,18 @@ package jsitter.api
 
 import java.nio.ByteBuffer
 
-interface SubTree<out T : NodeType> {
+interface Node<out T : NodeType> {
     val language: Language
     val nodeType: T
     val byteSize: Int
     fun zipper(): Zipper<T>
-    fun adjust(edits: List<Edit>): SubTree<T>
+    fun adjust(edits: List<Edit>): Node<T>
 }
 
-interface Tree<T : NodeType>: SubTree<T> {
-    override fun adjust(edits: List<Edit>): Tree<T>
+interface Tree<T : NodeType> {
+    fun adjust(edits: List<Edit>): Tree<T>
     fun getChangedRanges(newTree: Tree<T>): List<BytesRange>
+    val root: Node<T>
 }
 
 interface Zipper<out T : NodeType> {
@@ -21,19 +22,17 @@ interface Zipper<out T : NodeType> {
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
 
-    fun retainSubtree(): SubTree<T>
+    fun retainSubtree(): Node<T>
+    val node: Node<T>
 
     val byteOffset: Int
-    val byteSize: Int
-    val nodeType: T
-    val language: Language
 }
 
 data class Edit(val startByte: Int,
                 val oldEndByte: Int,
                 val newEndByte: Int)
 
-fun<T: NodeType> Zipper<T>.skip(): Zipper<*>? {
+fun <T : NodeType> Zipper<T>.skip(): Zipper<*>? {
     var u: Zipper<*>? = this
     while (u != null) {
         val r = u.right()
@@ -46,7 +45,7 @@ fun<T: NodeType> Zipper<T>.skip(): Zipper<*>? {
     return null
 }
 
-fun <T: NodeType> Zipper<T>.next() : Zipper<*>? = down() ?: skip()
+fun <T : NodeType> Zipper<T>.next(): Zipper<*>? = down() ?: skip()
 
 open class NodeType(val name: String) {
     var id: Int = -1

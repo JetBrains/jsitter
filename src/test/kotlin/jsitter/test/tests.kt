@@ -21,10 +21,10 @@ class Test1 {
         val lang = golang()
         val parser = lang.parser(SourceFile)
         var tree = parser.parse(StringText("func hello() { sayHello() }"))
-        var zipper: Zipper<*>? = tree.zipper()
+        var zipper: Zipper<*>? = tree.root.zipper()
         val str = arrayListOf<String>()
         while (zipper != null) {
-            str.add(zipper.nodeType.toString())
+            str.add(zipper.node.nodeType.toString())
             zipper = zipper.next()
         }
         assertEquals(listOf("source_file",
@@ -42,7 +42,7 @@ class Test1 {
                 "(",
                 ")",
                 "}"), str)
-        val codeBlock = tree.zipper()
+        val codeBlock = tree.root.zipper()
                 .down()!!
                 .down()!!
                 .right()!!
@@ -50,13 +50,13 @@ class Test1 {
                 .right()!!
                 .down()!!
                 .right()!!
-        assertEquals("call_expression", codeBlock.nodeType.name)
+        assertEquals("call_expression", codeBlock.node.nodeType.name)
         tree = tree.adjust(listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2)))
         tree = parser.parse(StringText("func bye() { sayHello() }"), adjustedTree = tree)
-        var z: Zipper<*>? = tree.zipper()
+        var z: Zipper<*>? = tree.root.zipper()
         val str2 = arrayListOf<String>()
         while (z != null) {
-            str2 += z.nodeType.toString()
+            str2 += z.node.nodeType.toString()
             z = z.next()
         }
         assertEquals(listOf("source_file",
@@ -76,10 +76,10 @@ class Test1 {
                 "}"), str2)
         tree = tree.adjust(listOf(Edit(8 * 2, 8 * 2, 13 * 2), Edit(17 * 2, (17 + 11) * 2, 17 * 2)))
         tree = parser.parse(StringText("func byeWorld() { }"), adjustedTree = tree)
-        z = tree.zipper()
+        z = tree.root.zipper()
         val str3 = arrayListOf<String>()
         while (z != null) {
-            str3 += z.nodeType.toString()
+            str3 += z.node.nodeType.toString()
             z = z.next()
         }
         assertEquals(listOf("source_file",
@@ -110,7 +110,7 @@ class Test1 {
         val tree = parser.parse(text)
         val end1 = System.nanoTime()
         println("parse time = ${end1 - start1}")
-        var zipper: Zipper<*>? = tree.zipper()
+        var zipper: Zipper<*>? = tree.root.zipper()
         var nodesCount = 0
         val start2 = System.nanoTime()
         while (zipper != null) {
@@ -121,7 +121,7 @@ class Test1 {
         println("walk1 time = ${end2 - start2}")
         println("nodesCount = ${nodesCount}")
         val start = System.nanoTime()
-        zipper = tree.zipper()
+        zipper = tree.root.zipper()
         while (zipper != null) {
             zipper = zipper.next()
         }
