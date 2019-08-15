@@ -21,6 +21,18 @@ interface Zipper<out T : NodeType> {
     fun down(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
+    fun skip(): Zipper<*>? {
+        var u: Zipper<*>? = this
+        while (u != null) {
+            val r = u.right()
+            if (r != null) {
+                return r
+            } else {
+                u = u.up()
+            }
+        }
+        return null
+    }
     fun next(): Zipper<*>? = down() ?: skip()
 
     fun retainSubtree(): Node<T>
@@ -32,19 +44,6 @@ interface Zipper<out T : NodeType> {
 data class Edit(val startByte: Int,
                 val oldEndByte: Int,
                 val newEndByte: Int)
-
-fun <T : NodeType> Zipper<T>.skip(): Zipper<*>? {
-    var u: Zipper<*>? = this
-    while (u != null) {
-        val r = u.right()
-        if (r != null) {
-            return r
-        } else {
-            u = u.up()
-        }
-    }
-    return null
-}
 
 open class NodeType(val name: String) {
     var id: Int = -1
