@@ -122,7 +122,7 @@ data class TSSubtree<out T : NodeType>(override val language: TSLanguage,
     override fun hashCode(): Int =
             subtreePtr.toInt() + 1
 
-    override val nodeType: T by lazy {
+    override val type: T by lazy {
         this.language.getNodeType(SubtreeAccess.subtreeNodeType(this.subtreePtr)) as T
     }
 

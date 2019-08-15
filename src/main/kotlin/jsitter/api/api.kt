@@ -4,7 +4,7 @@ import java.nio.ByteBuffer
 
 interface Node<out T : NodeType> {
     val language: Language
-    val nodeType: T
+    val type: T
     val byteSize: Int
     fun zipper(): Zipper<T>
     fun adjust(edits: List<Edit>): Node<T>

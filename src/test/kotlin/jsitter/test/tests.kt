@@ -24,7 +24,7 @@ class Test1 {
         var zipper: Zipper<*>? = tree.root.zipper()
         val str = arrayListOf<String>()
         while (zipper != null) {
-            str.add(zipper.node.nodeType.toString())
+            str.add(zipper.node.type.toString())
             zipper = zipper.next()
         }
         assertEquals(listOf("source_file",
@@ -50,13 +50,13 @@ class Test1 {
                 .right()!!
                 .down()!!
                 .right()!!
-        assertEquals("call_expression", codeBlock.node.nodeType.name)
+        assertEquals("call_expression", codeBlock.node.type.name)
         tree = tree.adjust(listOf(Edit(5*2, (5 + 5)*2, (5 + 3) * 2)))
         tree = parser.parse(StringText("func bye() { sayHello() }"), adjustedTree = tree)
         var z: Zipper<*>? = tree.root.zipper()
         val str2 = arrayListOf<String>()
         while (z != null) {
-            str2 += z.node.nodeType.toString()
+            str2 += z.node.type.toString()
             z = z.next()
         }
         assertEquals(listOf("source_file",
@@ -79,7 +79,7 @@ class Test1 {
         z = tree.root.zipper()
         val str3 = arrayListOf<String>()
         while (z != null) {
-            str3 += z.node.nodeType.toString()
+            str3 += z.node.type.toString()
             z = z.next()
         }
         assertEquals(listOf("source_file",
