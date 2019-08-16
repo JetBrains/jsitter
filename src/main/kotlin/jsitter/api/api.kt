@@ -46,8 +46,8 @@ data class Edit(val startByte: Int,
                 val newEndByte: Int)
 
 open class NodeType(val name: String) {
-    var id: Int = -1
-    var initialized = false
+    internal var id: Int = -1
+    internal var initialized = false
     override fun toString(): String = name
 }
 
