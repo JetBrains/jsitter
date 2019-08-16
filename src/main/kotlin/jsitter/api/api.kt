@@ -78,7 +78,8 @@ interface Text {
     val encoding: Encoding
 }
 
-typealias BytesRange = Pair<Int, Int>
+data class BytesRange(val start: Int,
+                      val end: Int)
 
 class CancellationToken {
     @Volatile

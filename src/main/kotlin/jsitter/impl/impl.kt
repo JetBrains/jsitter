@@ -171,7 +171,7 @@ data class TSTree<T : NodeType>(val treePtr: Ptr,
         } else {
             val changedRanges = arrayListOf<BytesRange>()
             for (i in rs.indices step 2) {
-                changedRanges.add(rs[i] to rs[i + 1])
+                changedRanges.add(BytesRange(rs[i], rs[i + 1]))
             }
             changedRanges
         }
