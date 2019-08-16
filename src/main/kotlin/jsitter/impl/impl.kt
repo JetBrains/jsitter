@@ -236,7 +236,7 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
                              val childIndex: Int,
                              val structuralChildIndex: Int) : Zipper<T> {
 
-    private fun visible(): Boolean =
+    fun visible(): Boolean =
             if (SubtreeAccess.isVisible(this.node.subtreePtr)) {
                 true
             } else {
@@ -256,7 +256,7 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
             if (this.parent == null) {
                 null
             } else {
-                if (this.visible()) {
+                if (this.parent.visible()) {
                     this.parent
                 } else {
                     this.parent.up()

@@ -16,6 +16,21 @@ fun golang(): Language {
 }
 
 class Test1 {
+
+    @Test
+    fun visiting2() {
+        val lang = golang()
+        val parser = lang.parser(SourceFile)
+        val tree = parser.parse(StringText("type Y = struct {x []string `yyy`}"))
+        var zipper: Zipper<*>? = tree.root.zipper()
+        val str = arrayListOf<String>()
+        while (zipper != null) {
+            str.add(zipper.node.type.toString())
+            zipper = zipper.next()
+        }
+        println("str = ${str}")
+    }
+
     @Test
     fun visitingTree() {
         val lang = golang()
@@ -130,15 +145,3 @@ class Test1 {
     }
 }
 
-/*
- * Simple implementation of Text for testing purposes
- */
-class StringText(val str: String) : Text {
-    override val encoding: Encoding = Encoding.UTF16
-
-    override fun read(byteOffset: Int, output: ByteBuffer) {
-        val bytes = str.toByteArray(Charsets.UTF_16LE)
-        output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
-    }
-
-}

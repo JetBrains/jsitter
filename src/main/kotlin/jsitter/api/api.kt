@@ -78,6 +78,18 @@ interface Text {
     val encoding: Encoding
 }
 
+/*
+ * Simple implementation of Text for testing purposes
+ */
+class StringText(val str: String) : Text {
+    override val encoding: Encoding = Encoding.UTF16
+
+    override fun read(byteOffset: Int, output: ByteBuffer) {
+        val bytes = str.toByteArray(Charsets.UTF_16LE)
+        output.put(bytes, byteOffset, Math.min(bytes.size - byteOffset, output.limit()))
+    }
+}
+
 data class BytesRange(val start: Int,
                       val end: Int)
 
