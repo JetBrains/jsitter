@@ -1,24 +1,35 @@
 package jsitter.interop;
 
+import com.sun.jna.Function;
+import com.sun.jna.Native;
+import com.sun.jna.NativeLibrary;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.IOException;
+import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class JSitter {
-    static {
-        String libName = System.mapLibraryName("jsitter");
-        try {
-            LibLoader.loadLibraryFromJar("/" + libName);
-        } catch (IOException e) {
-            String filename = System.getProperty("user.dir") + "/native/build/" + libName;
-            System.out.println("loading native lib from " + filename);
-            System.load(filename);
-        }
+
+    public static List stuff = new ArrayList();
+
+    public static long loadLang(String fnName, String libnameOrPath, ClassLoader loader) {
+        NativeLibrary instance = NativeLibrary.getInstance(libnameOrPath, loader);
+        stuff.add(instance);
+        Function function = instance.getFunction(fnName);
+        return function.invokeLong(new Object[]{});
     }
 
-    public static native long findLanguage(@NotNull String name);
+    static {
+        try {
+            File jsitter = Native.extractFromResourcePath("jsitter", JSitter.class.getClassLoader());
+            System.load(jsitter.getAbsolutePath());
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     public static native void releaseSubtree(long subtree);
 

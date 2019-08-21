@@ -1,5 +1,9 @@
 package jsitter.api
 
+import com.sun.jna.Native
+import jsitter.impl.SubtreeAccess
+import jsitter.impl.TSLanguage
+import jsitter.interop.JSitter
 import java.nio.ByteBuffer
 
 interface Node<out T : NodeType> {
@@ -61,6 +65,14 @@ object Error : NodeType("ERROR") {
 open class Terminal(name: String) : NodeType(name)
 
 interface Language {
+    companion object {
+        fun load(name: String, nativeFactoryFunction: String, libName: String, classLoader: ClassLoader?): Language {
+            val languagePtr = JSitter.loadLang(nativeFactoryFunction, libName, classLoader)
+            return TSLanguage(
+                    languagePtr = languagePtr,
+                    name = name)
+        }
+    }
     val name: String
     fun <T : NodeType> parser(nodeType: T): Parser<T>
     fun nodeType(name: String): NodeType

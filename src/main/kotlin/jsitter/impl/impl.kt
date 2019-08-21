@@ -77,16 +77,6 @@ class TSLanguage(val languagePtr: Ptr,
     }
 }
 
-
-fun loadTSLanguage(name: String): TSLanguage? {
-    val langPtr: Ptr = JSitter.findLanguage(name)
-    return if (langPtr != 0L) {
-        TSLanguage(langPtr, name)
-    } else {
-        null
-    }
-}
-
 class TSTReeResource(val treePtr: Ptr) : Resource {
     init {
         Cleaner.register(this)

@@ -5,10 +5,6 @@
 #include "subtree.h"
 
 /* Header for class jsitter_interop_JSitter */
-    TSLanguage *tree_sitter_go();
-    
-    TSLanguage *tree_sitter_json();
-    
     /*
      * Class:     jsitter_interop_JSitter
      * Method:    getSymbolName
@@ -199,21 +195,5 @@ JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parserReset
         TSParser *parser = ts_parser_new();
         ts_parser_set_language(parser, (TSLanguage *)language_ptr);
         return (jlong) parser;
-    }
-    
-    JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_findLanguage
-    (JNIEnv *env, jclass class, jstring name) {
-        jboolean copy;
-        const char *language_name = (*env)->GetStringUTFChars(env, name, &copy);
-        TSLanguage *lang = NULL;
-        if (!strcmp(language_name, "go")) {
-            lang = tree_sitter_go();
-        } else if (!strcmp(language_name, "json")) {
-            lang = tree_sitter_json();
-        }
-        if (copy) {
-            (*env)->ReleaseStringUTFChars(env, name, language_name);
-        }
-        return (jlong) lang;
     }
 
