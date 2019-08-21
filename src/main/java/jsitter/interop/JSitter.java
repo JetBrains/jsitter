@@ -13,11 +13,11 @@ import java.util.List;
 
 public class JSitter {
 
-    public static List stuff = new ArrayList();
+    public static List retainedLibs = new ArrayList();
 
     public static long loadLang(String fnName, String libnameOrPath, ClassLoader loader) {
         NativeLibrary instance = NativeLibrary.getInstance(libnameOrPath, loader);
-        stuff.add(instance);
+        retainedLibs.add(instance);
         Function function = instance.getFunction(fnName);
         return function.invokeLong(new Object[]{});
     }

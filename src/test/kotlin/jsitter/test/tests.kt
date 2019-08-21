@@ -28,7 +28,26 @@ class Test1 {
             str.add(zipper.node.type.toString())
             zipper = zipper.next()
         }
-        println("str = ${str}")
+        assertEquals(listOf(
+                "source_file",
+                "type_declaration",
+                "type",
+                "type_alias",
+                "identifier",
+                "=",
+                "struct_type",
+                "struct",
+                "field_declaration_list",
+                "{",
+                "field_declaration",
+                "identifier",
+                "slice_type",
+                "[",
+                "]",
+                "identifier",
+                "raw_string_literal",
+                "}"
+        ), str)
     }
 
     @Test
