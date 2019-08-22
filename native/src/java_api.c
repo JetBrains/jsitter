@@ -172,7 +172,7 @@
         }
     }
 
-JNIEXPORT jlong JNICALL Java_jsitter_interop_JSitter_parserReset
+JNIEXPORT void JNICALL Java_jsitter_interop_JSitter_parserReset
 (JNIEnv * env, jclass class, jlong parser_ptr) {
   ts_parser_reset((TSParser *)parser_ptr);
 }

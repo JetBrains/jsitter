@@ -9,8 +9,8 @@ import java.nio.file.Paths
 
 object SourceFile : NodeType("source_file")
 
-fun golang(): Language {
-    val lang = Language.load("go", "tree_sitter_go", "/libtsgo.dylib", Language::class.java.classLoader)
+fun golang(): Language<SourceFile> {
+    val lang = Language.load(SourceFile, "go", "tree_sitter_go", "/libtsgo.dylib", Language::class.java.classLoader)
     lang.register(SourceFile)
     return lang
 }
@@ -20,7 +20,7 @@ class Test1 {
     @Test
     fun visiting2() {
         val lang = golang()
-        val parser = lang.parser(SourceFile)
+        val parser = lang.parser()
         val tree = parser.parse(StringText("type Y = struct {x []string `yyy`}"))
         var zipper: Zipper<*>? = tree.root.zipper()
         val str = arrayListOf<String>()
@@ -53,7 +53,7 @@ class Test1 {
     @Test
     fun visitingTree() {
         val lang = golang()
-        val parser = lang.parser(SourceFile)
+        val parser = lang.parser()
         var tree = parser.parse(StringText("func hello() { sayHello() }"))
         var zipper: Zipper<*>? = tree.root.zipper()
         val str = arrayListOf<String>()
@@ -139,7 +139,7 @@ class Test1 {
             override val encoding: Encoding = Encoding.UTF8
         }
         val lang = golang()
-        val parser = lang.parser(SourceFile)
+        val parser = lang.parser()
         val start1 = System.nanoTime()
         val tree = parser.parse(text)
         val end1 = System.nanoTime()

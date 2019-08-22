@@ -28,10 +28,12 @@ class TSTextInput(val text: Text,
 
 typealias TSSymbol = Int
 
-class TSLanguage(val languagePtr: Ptr,
-                 override val name: String,
-                 val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
-                 val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language {
+class TSLanguage<T: NodeType>(
+        val languagePtr: Ptr,
+        override val name: String,
+        override val sourceFileNodeType: T,
+        val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
+        val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language<T> {
 
     fun getNodeType(tsSymbol: TSSymbol): NodeType =
             nodeTypesCache.computeIfAbsent(tsSymbol) { symbol ->
@@ -64,11 +66,11 @@ class TSLanguage(val languagePtr: Ptr,
 
     override fun nodeType(name: String): NodeType = registry[name]!!
 
-    override fun <T : NodeType> parser(nodeType: T): Parser<T> {
+    override fun parser(): Parser<T> {
         val cancellationFlagPtr = SubtreeAccess.unsafe.allocateMemory(8)
         return TSParser(parserPtr = JSitter.newParser(languagePtr, cancellationFlagPtr),
                 language = this,
-                nodeType = nodeType,
+                nodeType = sourceFileNodeType,
                 cancellationFlagPtr = cancellationFlagPtr) as Parser<T>
     }
 
@@ -103,7 +105,7 @@ class TSSubtreeResource(val subtreePtr: Ptr) : Resource {
     }
 }
 
-data class TSSubtree<out T : NodeType>(override val language: TSLanguage,
+data class TSSubtree<out T : NodeType>(override val language: TSLanguage<*>,
                                        val subtreePtr: Ptr,
                                        val lifetime: Resource?) : Node<T> {
     override fun equals(other: Any?): Boolean =
@@ -168,10 +170,10 @@ data class TSTree<T : NodeType>(val treePtr: Ptr,
     }
 }
 
-data class TSParser(val parserPtr: Ptr,
-                    override val language: TSLanguage,
-                    val nodeType: NodeType,
-                    val cancellationFlagPtr: Ptr) : Parser<NodeType>, Resource {
+data class TSParser<T: NodeType>(val parserPtr: Ptr,
+                                 override val language: TSLanguage<T>,
+                                 val nodeType: NodeType,
+                                 val cancellationFlagPtr: Ptr) : Parser<T>, Resource {
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
     init {
@@ -187,7 +189,7 @@ data class TSParser(val parserPtr: Ptr,
         }
     }
 
-    override fun parse(text: Text, adjustedTree: Tree<NodeType>?, cancellationToken: CancellationToken?): Tree<NodeType>? {
+    override fun parse(text: Text, adjustedTree: Tree<T>?, cancellationToken: CancellationToken?): Tree<T>? {
         synchronized(this) {
             SubtreeAccess.unsafe.putLong(this.cancellationFlagPtr, 0)
             cancellationToken?.onCancel {

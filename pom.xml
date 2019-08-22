@@ -128,13 +128,13 @@
                 </directory>
                 <includes>
                     <include>
-                        libjsitter.dylib
+                        darwin/libjsitter.dylib
                     </include>
                     <include>
-                        libjsitter.so
+                        linux-x86-64/libjsitter.so
                     </include>
                     <include>
-                        jsitter.dll
+                        win32-x86-64/jsitter.dll
                     </include>
                 </includes>
             </resource>

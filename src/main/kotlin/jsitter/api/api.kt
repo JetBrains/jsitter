@@ -1,13 +1,11 @@
 package jsitter.api
 
-import com.sun.jna.Native
-import jsitter.impl.SubtreeAccess
 import jsitter.impl.TSLanguage
 import jsitter.interop.JSitter
 import java.nio.ByteBuffer
 
 interface Node<out T : NodeType> {
-    val language: Language
+    val language: Language<*>
     val type: T
     val byteSize: Int
     fun zipper(): Zipper<T>
@@ -55,6 +53,8 @@ open class NodeType(val name: String) {
     override fun toString(): String = name
 }
 
+
+
 object Error : NodeType("ERROR") {
     init {
         id = -1
@@ -64,17 +64,23 @@ object Error : NodeType("ERROR") {
 
 open class Terminal(name: String) : NodeType(name)
 
-interface Language {
+interface Language<T: NodeType> {
+
     companion object {
-        fun load(name: String, nativeFactoryFunction: String, libName: String, classLoader: ClassLoader?): Language {
+        @JvmStatic
+        fun<T: NodeType> load(sourceFileNodeType: T, name: String, nativeFactoryFunction: String, libName: String, classLoader: ClassLoader?): Language<T> {
             val languagePtr = JSitter.loadLang(nativeFactoryFunction, libName, classLoader)
-            return TSLanguage(
+            val res = TSLanguage(
                     languagePtr = languagePtr,
-                    name = name)
+                    name = name,
+                    sourceFileNodeType = sourceFileNodeType)
+            res.register(sourceFileNodeType)
+            return res
         }
     }
     val name: String
-    fun <T : NodeType> parser(nodeType: T): Parser<T>
+    val sourceFileNodeType: NodeType
+    fun parser(): Parser<T>
     fun nodeType(name: String): NodeType
     fun register(nodeType: NodeType)
 }
@@ -134,5 +140,5 @@ class CancellationToken {
 interface Parser<T : NodeType> {
     fun parse(text: Text, adjustedTree: Tree<T>? = null, cancellationToken: CancellationToken?): Tree<T>?
     fun parse(text: Text, adjustedTree: Tree<T>? = null): Tree<T> = this.parse(text, adjustedTree, null)!!
-    val language: Language
+    val language: Language<T>
 }
