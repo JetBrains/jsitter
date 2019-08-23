@@ -41,6 +41,7 @@ interface Zipper<out T : NodeType> {
     val node: Node<T>
 
     val byteOffset: Int
+    val alias: NodeType?
 }
 
 data class Edit(val startByte: Int,

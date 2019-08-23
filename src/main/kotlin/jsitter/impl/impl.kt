@@ -28,7 +28,7 @@ class TSTextInput(val text: Text,
 
 typealias TSSymbol = Int
 
-class TSLanguage<T: NodeType>(
+class TSLanguage<T : NodeType>(
         val languagePtr: Ptr,
         override val name: String,
         override val sourceFileNodeType: T,
@@ -170,10 +170,10 @@ data class TSTree<T : NodeType>(val treePtr: Ptr,
     }
 }
 
-data class TSParser<T: NodeType>(val parserPtr: Ptr,
-                                 override val language: TSLanguage<T>,
-                                 val nodeType: NodeType,
-                                 val cancellationFlagPtr: Ptr) : Parser<T>, Resource {
+data class TSParser<T : NodeType>(val parserPtr: Ptr,
+                                  override val language: TSLanguage<T>,
+                                  val nodeType: NodeType,
+                                  val cancellationFlagPtr: Ptr) : Parser<T>, Resource {
     val readingBuffer: ByteBuffer = ByteBuffer.allocateDirect(READING_BUFFER_CAPACITY)
 
     init {
@@ -227,22 +227,25 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
                              override val byteOffset: Int,
                              val childIndex: Int,
                              val structuralChildIndex: Int) : Zipper<T> {
+    override val alias: NodeType?
+        get() {
+            val alias = this.aliasSymbol()
+            return if (alias != 0) {
+                this.node.language.getNodeType(alias) as T
+            } else {
+                null
+            }
+        }
+
+    fun aliasSymbol(): TSSymbol =
+            if (this.parentAliasSequence != 0L && !SubtreeAccess.extra(this.node.subtreePtr)) {
+                SubtreeAccess.aliasSequenceAt(this.parentAliasSequence, this.structuralChildIndex)
+            } else {
+                0
+            }
 
     fun visible(): Boolean =
-            if (SubtreeAccess.isVisible(this.node.subtreePtr)) {
-                true
-            } else {
-                if (this.parentAliasSequence != 0L) {
-                    val extra: Boolean = SubtreeAccess.extra(this.node.subtreePtr)
-                    if (!extra) {
-                        SubtreeAccess.aliasSequenceAt(this.parentAliasSequence, this.structuralChildIndex) != 0
-                    } else {
-                        false
-                    }
-                } else {
-                    false
-                }
-            }
+            SubtreeAccess.isVisible(this.node.subtreePtr) || this.aliasSymbol() != 0
 
     override fun up(): Zipper<*>? =
             if (this.parent == null) {
@@ -299,13 +302,8 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
             } else {
                 val sibling: Ptr = SubtreeAccess.childAt(this.parent.node.subtreePtr, this.childIndex - 1)
                 val structuralChildIndex =
-                        if (this.parentAliasSequence != 0L) {
-                            val extra: Boolean = SubtreeAccess.extra(this.node.subtreePtr)
-                            if (!extra) {
-                                this.structuralChildIndex - 1
-                            } else {
-                                this.structuralChildIndex
-                            }
+                        if (!SubtreeAccess.extra(this.node.subtreePtr)) {
+                            this.structuralChildIndex - 1
                         } else {
                             this.structuralChildIndex
                         }
@@ -345,13 +343,8 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
             } else {
                 val sibling: Ptr = SubtreeAccess.childAt(this.parent.node.subtreePtr, this.childIndex + 1)
                 val structuralChildIndex =
-                        if (this.parentAliasSequence != 0L) {
-                            val extra: Boolean = SubtreeAccess.extra(this.node.subtreePtr)
-                            if (!extra) {
-                                this.structuralChildIndex + 1
-                            } else {
-                                this.structuralChildIndex
-                            }
+                        if (!SubtreeAccess.extra(this.node.subtreePtr)) {
+                            this.structuralChildIndex + 1
                         } else {
                             this.structuralChildIndex
                         }

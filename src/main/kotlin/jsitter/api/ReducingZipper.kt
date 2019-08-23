@@ -7,6 +7,9 @@ fun <T : NodeType, Acc> Node<T>.reducingZipper(init: Acc,
 class ReducingZipper<T : NodeType, Acc>(val parentOrInit: Any?,
                                         val z: Zipper<T>,
                                         val reducer: (Acc, Zipper<*>) -> Acc) : Zipper<T> {
+    override val alias: NodeType?
+        get() = z.alias
+
     override fun up(): ReducingZipper<*, Acc>? {
         if (parentOrInit is ReducingZipper<*, *>) {
             return parentOrInit as ReducingZipper<*, Acc>

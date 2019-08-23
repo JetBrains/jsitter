@@ -25,7 +25,9 @@ class Test1 {
         var zipper: Zipper<*>? = tree.root.zipper()
         val str = arrayListOf<String>()
         while (zipper != null) {
-            str.add(zipper.node.type.toString())
+            val nodeTypeStr = zipper.node.type.toString()
+            val aliasStr = zipper.alias?.toString()
+            str.add(if (aliasStr != null) "$nodeTypeStr($aliasStr)" else nodeTypeStr)
             zipper = zipper.next()
         }
         assertEquals(listOf(
@@ -33,18 +35,18 @@ class Test1 {
                 "type_declaration",
                 "type",
                 "type_alias",
-                "identifier",
+                "identifier(type_identifier)",
                 "=",
                 "struct_type",
                 "struct",
                 "field_declaration_list",
                 "{",
                 "field_declaration",
-                "identifier",
+                "identifier(field_identifier)",
                 "slice_type",
                 "[",
                 "]",
-                "identifier",
+                "identifier(type_identifier)",
                 "raw_string_literal",
                 "}"
         ), str)

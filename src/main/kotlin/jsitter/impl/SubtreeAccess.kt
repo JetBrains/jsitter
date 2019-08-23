@@ -117,9 +117,11 @@ object SubtreeAccess {
 
     fun aliasSequence(lang: Ptr, productionId: Int): Ptr {
         val alias_sequences_offset = 64
-        val max_alias_sequence_length = alias_sequences_offset + 8
+        val max_alias_sequence_length_offset = alias_sequences_offset + 8
         if (productionId > 0) {
-            return unsafe.getAddress(lang + alias_sequences_offset) + productionId * readShort(lang + max_alias_sequence_length)
+            val maxAliasSequenceLength = readShort(lang + max_alias_sequence_length_offset)
+            val aliasSequencesPtr = unsafe.getAddress(lang + alias_sequences_offset)
+            return aliasSequencesPtr + 2 * productionId * maxAliasSequenceLength
         } else {
             return 0L
         }
