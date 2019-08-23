@@ -76,6 +76,7 @@ interface Language<T: NodeType> {
                     name = name,
                     rootNodeType = rootNodeType)
             res.register(rootNodeType)
+            res.register(Error)
             return res
         }
     }
