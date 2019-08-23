@@ -31,7 +31,7 @@ typealias TSSymbol = Int
 class TSLanguage<T : NodeType>(
         val languagePtr: Ptr,
         override val name: String,
-        override val sourceFileNodeType: T,
+        override val rootNodeType: T,
         val registry: ConcurrentMap<String, NodeType> = ConcurrentHashMap(),
         val nodeTypesCache: ConcurrentMap<TSSymbol, NodeType> = ConcurrentHashMap()) : Language<T> {
 
@@ -70,7 +70,7 @@ class TSLanguage<T : NodeType>(
         val cancellationFlagPtr = SubtreeAccess.unsafe.allocateMemory(8)
         return TSParser(parserPtr = JSitter.newParser(languagePtr, cancellationFlagPtr),
                 language = this,
-                nodeType = sourceFileNodeType,
+                nodeType = rootNodeType,
                 cancellationFlagPtr = cancellationFlagPtr) as Parser<T>
     }
 

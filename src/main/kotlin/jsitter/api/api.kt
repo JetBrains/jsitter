@@ -69,18 +69,18 @@ interface Language<T: NodeType> {
 
     companion object {
         @JvmStatic
-        fun<T: NodeType> load(sourceFileNodeType: T, name: String, nativeFactoryFunction: String, libName: String, classLoader: ClassLoader?): Language<T> {
+        fun<T: NodeType> load(rootNodeType: T, name: String, nativeFactoryFunction: String, libName: String, classLoader: ClassLoader?): Language<T> {
             val languagePtr = JSitter.loadLang(nativeFactoryFunction, libName, classLoader)
             val res = TSLanguage(
                     languagePtr = languagePtr,
                     name = name,
-                    sourceFileNodeType = sourceFileNodeType)
-            res.register(sourceFileNodeType)
+                    rootNodeType = rootNodeType)
+            res.register(rootNodeType)
             return res
         }
     }
     val name: String
-    val sourceFileNodeType: NodeType
+    val rootNodeType: NodeType
     fun parser(): Parser<T>
     fun nodeType(name: String): NodeType
     fun register(nodeType: NodeType)
