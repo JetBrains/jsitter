@@ -40,6 +40,9 @@ object SubtreeAccess {
     }
 
     fun subtreeNodeType(subtree: Ptr) : Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return subtree.byte(1)
         } else {
@@ -48,6 +51,9 @@ object SubtreeAccess {
     }
 
     fun childCount(subtree: Ptr): Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return 0
         } else {
@@ -56,6 +62,9 @@ object SubtreeAccess {
     }
 
     fun childAt(subtree: Ptr, i: Int): Ptr {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             throw AssertionError()
         }
@@ -64,6 +73,9 @@ object SubtreeAccess {
     }
 
     fun extra(subtree: Ptr): Boolean {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return subtree.byte(0).and(8) == 8
         } else {
@@ -73,6 +85,9 @@ object SubtreeAccess {
     }
 
     fun subtreeBytesSize(subtree: Ptr): Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return subtree.byte(3)
         } else {
@@ -81,6 +96,9 @@ object SubtreeAccess {
     }
 
     fun subtreeBytesPadding(subtree: Ptr): Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return subtree.byte(2)
         } else {
@@ -89,6 +107,9 @@ object SubtreeAccess {
     }
 
     fun isVisible(subtree: Ptr): Boolean {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return subtree.byte(0).and(2) == 2
         } else {
@@ -97,6 +118,9 @@ object SubtreeAccess {
     }
 
     fun productionId(subtree: Ptr): Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             throw AssertionError()
         }
@@ -104,6 +128,9 @@ object SubtreeAccess {
     }
 
     fun visibleChildCount(subtree: Ptr): Int {
+        if (subtree == 0L) {
+            throw NullPointerException()
+        }
         if (isInline(subtree)) {
             return 0
         } else {
@@ -128,6 +155,9 @@ object SubtreeAccess {
     }
 
     fun root(treePtr: Ptr): Ptr {
+        if (treePtr == 0L) {
+            throw NullPointerException()
+        }
         return unsafe.getAddress(treePtr)
     }
 }
