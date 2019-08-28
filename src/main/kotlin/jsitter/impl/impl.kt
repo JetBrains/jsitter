@@ -221,6 +221,20 @@ data class TSParser<T : NodeType>(val parserPtr: Ptr,
     }
 }
 
+fun nodesPath(zip: TSZipper<*>): List<NodeType> {
+    val r = arrayListOf<NodeType>()
+    var z: TSZipper<*>? = zip
+    val visitedNodes = hashSetOf<Ptr>()
+    while (z != null) {
+        r.add(z.node.type)
+        if (!visitedNodes.add(z.node.subtreePtr)) {
+            throw AssertionError("there is a cycle in tree!")
+        }
+        z = z.parent
+    }
+    return r
+}
+
 class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
                              val parentAliasSequence: Ptr,
                              override val node: TSSubtree<T>,
@@ -258,36 +272,49 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
                 }
             }
 
+    val MAX_DEP = 100000
 
-    override fun down(): Zipper<*>? =
-            if (SubtreeAccess.childCount(this.node.subtreePtr) == 0) {
-                null
-            } else {
-                val child = SubtreeAccess.childAt(this.node.subtreePtr, 0)
-                val lang = this.node.language.languagePtr
-                val productionId = SubtreeAccess.productionId(this.node.subtreePtr)
+    class TreeTooDeep(nodesPath: List<NodeType>) : RuntimeException("$nodesPath")
+
+    override fun down(): Zipper<*>? {
+        if (SubtreeAccess.childCount(this.node.subtreePtr) == 0) {
+            return null
+        } else {
+            var zip: TSZipper<*> = this
+            var dep = 0
+            while (true) {
+                dep = dep + 1
+                if (dep > MAX_DEP) {
+                    throw TreeTooDeep(nodesPath(zip))
+                }
+                val child = SubtreeAccess.childAt(zip.node.subtreePtr, 0)
+                val lang = zip.node.language.languagePtr
+                val productionId = SubtreeAccess.productionId(zip.node.subtreePtr)
                 val aliasSequence = SubtreeAccess.aliasSequence(lang, productionId)
                 val res = TSZipper(
-                        parent = this,
+                        parent = zip,
                         parentAliasSequence = aliasSequence,
                         node = TSSubtree<NodeType>(
                                 subtreePtr = child,
-                                lifetime = this.node.lifetime,
-                                language = this.node.language),
-                        byteOffset = this.byteOffset,
+                                lifetime = zip.node.lifetime,
+                                language = zip.node.language),
+                        byteOffset = zip.byteOffset,
                         childIndex = 0,
                         structuralChildIndex = 0)
                 if (res.visible()) {
-                    res
+                    return res
                 } else {
                     val visibleChildCount = SubtreeAccess.visibleChildCount(child)
                     if (visibleChildCount > 0) {
-                        res.down()
+                        zip = res
+                        continue
                     } else {
-                        res.right()
+                        return res.right()
                     }
                 }
             }
+        }
+    }
 
 
     override fun left(): Zipper<*>? =
@@ -331,45 +358,51 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
             }
 
 
-    override fun right(): Zipper<*>? =
-            if (this.parent == null) {
-                null
-            } else if (this.childIndex == SubtreeAccess.childCount(this.parent.node.subtreePtr) - 1) {
-                if (this.parent.visible()) {
-                    null
+    override fun right(): Zipper<*>? {
+        var zip: TSZipper<*> = this
+        while (true) {
+            if (zip.parent == null) {
+                return null
+            } else if (zip.childIndex == SubtreeAccess.childCount(zip.parent!!.node.subtreePtr) - 1) {
+                if (zip.parent!!.visible()) {
+                    return null
                 } else {
-                    this.parent.right()
+                    zip = zip.parent!!
+                    continue
                 }
             } else {
-                val sibling: Ptr = SubtreeAccess.childAt(this.parent.node.subtreePtr, this.childIndex + 1)
+                val sibling: Ptr = SubtreeAccess.childAt(zip.parent!!.node.subtreePtr, zip.childIndex + 1)
                 val structuralChildIndex =
-                        if (!SubtreeAccess.extra(this.node.subtreePtr)) {
-                            this.structuralChildIndex + 1
+                        if (!SubtreeAccess.extra(zip.node.subtreePtr)) {
+                            zip.structuralChildIndex + 1
                         } else {
-                            this.structuralChildIndex
+                            zip.structuralChildIndex
                         }
-                val byteOffset = this.byteOffset + SubtreeAccess.subtreeBytesSize(this.node.subtreePtr) + SubtreeAccess.subtreeBytesPadding(sibling)
+                val byteOffset = zip.byteOffset + SubtreeAccess.subtreeBytesSize(zip.node.subtreePtr) + SubtreeAccess.subtreeBytesPadding(sibling)
                 val res = TSZipper(
-                        parent = this.parent,
-                        parentAliasSequence = this.parentAliasSequence,
+                        parent = zip.parent,
+                        parentAliasSequence = zip.parentAliasSequence,
                         node = TSSubtree<NodeType>(
                                 subtreePtr = sibling,
-                                lifetime = this.node.lifetime,
-                                language = this.node.language),
+                                lifetime = zip.node.lifetime,
+                                language = zip.node.language),
                         byteOffset = byteOffset,
-                        childIndex = this.childIndex + 1,
+                        childIndex = zip.childIndex + 1,
                         structuralChildIndex = structuralChildIndex)
                 if (res.visible()) {
-                    res
+                    return res
                 } else {
                     val d = res.down()
                     if (d != null) {
-                        d
+                        return d
                     } else {
-                        res.right()
+                        zip = res
+                        continue
                     }
                 }
             }
+        }
+    }
 
     override fun retainSubtree(): Node<T> {
         JSitter.retainSubtree(this.node.subtreePtr)
