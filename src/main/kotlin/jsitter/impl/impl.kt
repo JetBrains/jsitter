@@ -261,29 +261,34 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
     fun visible(): Boolean =
             SubtreeAccess.isVisible(this.node.subtreePtr) || this.aliasSymbol() != 0
 
-    override fun up(): Zipper<*>? =
-            if (this.parent == null) {
-                null
+    override fun up(): Zipper<*>? {
+        var z: TSZipper<*> = this
+        while (true) {
+            if (z.parent == null) {
+                return null
             } else {
-                if (this.parent.visible()) {
-                    this.parent
+                if (z.parent!!.visible()) {
+                    return z.parent
                 } else {
-                    this.parent.up()
+                    z = z.parent!!
+                    continue
                 }
             }
+        }
+    }
 
     val MAX_DEP = 100000
 
     class TreeTooDeep(nodesPath: List<NodeType>) : RuntimeException("$nodesPath")
 
     override fun down(): Zipper<*>? {
-        if (SubtreeAccess.childCount(this.node.subtreePtr) == 0) {
-            return null
-        } else {
-            var zip: TSZipper<*> = this
-            var dep = 0
-            while (true) {
-                dep = dep + 1
+        var zip: TSZipper<*> = this
+        var dep = 0
+        while (true) {
+            dep = dep + 1
+            if (SubtreeAccess.childCount(zip.node.subtreePtr) == 0) {
+                return null
+            } else {
                 if (dep > MAX_DEP) {
                     throw TreeTooDeep(nodesPath(zip))
                 }
@@ -317,45 +322,50 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
     }
 
 
-    override fun left(): Zipper<*>? =
-            if (this.parent == null) {
-                null
-            } else if (this.childIndex == 0) {
-                if (this.parent.visible()) {
-                    null
+    override fun left(): Zipper<*>? {
+        var z: TSZipper<*> = this
+        while (true) {
+            if (z.parent == null) {
+                return null
+            } else if (z.childIndex == 0) {
+                if (z.parent!!.visible()) {
+                    return null
                 } else {
-                    this.parent.left()
+                    return z.parent!!.left()
                 }
             } else {
-                val sibling: Ptr = SubtreeAccess.childAt(this.parent.node.subtreePtr, this.childIndex - 1)
+                val sibling: Ptr = SubtreeAccess.childAt(z.parent!!.node.subtreePtr, z.childIndex - 1)
                 val structuralChildIndex =
-                        if (!SubtreeAccess.extra(this.node.subtreePtr)) {
-                            this.structuralChildIndex - 1
+                        if (!SubtreeAccess.extra(z.node.subtreePtr)) {
+                            z.structuralChildIndex - 1
                         } else {
-                            this.structuralChildIndex
+                            z.structuralChildIndex
                         }
-                val byteOffset = this.byteOffset - SubtreeAccess.subtreeBytesSize(sibling) + SubtreeAccess.subtreeBytesPadding(this.node.subtreePtr)
+                val byteOffset = z.byteOffset - SubtreeAccess.subtreeBytesSize(sibling) + SubtreeAccess.subtreeBytesPadding(z.node.subtreePtr)
                 val res = TSZipper(
-                        parent = this.parent,
-                        parentAliasSequence = this.parentAliasSequence,
+                        parent = z.parent,
+                        parentAliasSequence = z.parentAliasSequence,
                         node = TSSubtree<NodeType>(
                                 subtreePtr = sibling,
-                                language = this.node.language,
-                                lifetime = this.node.lifetime),
+                                language = z.node.language,
+                                lifetime = z.node.lifetime),
                         byteOffset = byteOffset,
-                        childIndex = this.childIndex - 1,
+                        childIndex = z.childIndex - 1,
                         structuralChildIndex = structuralChildIndex)
                 if (res.visible()) {
-                    res
+                    return res
                 } else {
                     val d = res.down()
                     if (d != null) {
-                        d
+                        return d
                     } else {
-                        res.left()
+                        z = res
+                        continue
                     }
                 }
             }
+        }
+    }
 
 
     override fun right(): Zipper<*>? {
