@@ -341,7 +341,7 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
                         } else {
                             z.structuralChildIndex
                         }
-                val byteOffset = z.byteOffset - SubtreeAccess.subtreeBytesSize(sibling) + SubtreeAccess.subtreeBytesPadding(z.node.subtreePtr)
+                val byteOffset = z.byteOffset - SubtreeAccess.subtreeBytesPadding(z.node.subtreePtr) - SubtreeAccess.subtreeBytesSize(sibling)
                 val res = TSZipper(
                         parent = z.parent,
                         parentAliasSequence = z.parentAliasSequence,
