@@ -9,18 +9,17 @@ interface Node<out T : NodeType> {
     val type: T
     val byteSize: Int
     fun zipper(): Zipper<T>
-    fun adjust(edits: List<Edit>): Node<T>
 }
 
 interface Tree<T : NodeType> {
     fun adjust(edits: List<Edit>): Tree<T>
-    fun getChangedRanges(newTree: Tree<T>): List<BytesRange>
     val root: Node<T>
 }
 
 interface Zipper<out T : NodeType> {
     fun up(): Zipper<*>?
     fun down(): Zipper<*>?
+    fun downRight(): Zipper<*>?
     fun right(): Zipper<*>?
     fun left(): Zipper<*>?
     fun skip(): Zipper<*>? {
