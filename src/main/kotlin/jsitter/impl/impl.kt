@@ -75,7 +75,7 @@ class TSLanguage<T : NodeType>(
     return TSParser(parserPtr = JSitter.newParser(languagePtr, cancellationFlagPtr),
                     language = this,
                     nodeType = rootNodeType,
-                    cancellationFlagPtr = cancellationFlagPtr) as Parser<T>
+                    cancellationFlagPtr = cancellationFlagPtr)
   }
 
   override fun register(nodeType: NodeType) {
@@ -83,7 +83,7 @@ class TSLanguage<T : NodeType>(
   }
 }
 
-class TSTReeResource(val treePtr: Ptr) : Resource {
+class TSTreeResource(val treePtr: Ptr) : Resource {
   init {
     Cleaner.register(this)
   }
@@ -136,17 +136,23 @@ data class TSSubtree<out T : NodeType>(override val language: TSLanguage<*>,
 }
 
 data class TSTree<T : NodeType>(val treePtr: Ptr,
-                                override val root: TSSubtree<T>) : Tree<T> {
+                                override val root: TSSubtree<T>,
+                                override val actual: Boolean) : Tree<T> {
   override fun adjust(edits: List<Edit>): Tree<T> {
-    val treeCopy = JSitter.copyTree(this.treePtr)
-    for (e in edits) {
-      JSitter.editTree(treeCopy, e.startByte, e.oldEndByte, e.newEndByte)
+    if (edits.isEmpty()) {
+      return this
+    } else {
+      val treeCopy = JSitter.copyTree(this.treePtr)
+      for (e in edits) {
+        JSitter.editTree(treeCopy, e.startByte, e.oldEndByte, e.newEndByte)
+      }
+      return TSTree(
+        treePtr = treeCopy,
+        root = root.copy(
+          subtreePtr = SubtreeAccess.root(treeCopy),
+          lifetime = TSTreeResource(treeCopy)),
+        actual = false)
     }
-    return TSTree(
-      treePtr = treeCopy,
-      root = root.copy(
-        subtreePtr = SubtreeAccess.root(treeCopy),
-        lifetime = TSTReeResource(treeCopy)))
   }
 }
 
@@ -170,6 +176,9 @@ data class TSParser<T : NodeType>(val parserPtr: Ptr,
   }
 
   override fun parse(text: Text, adjustedTree: Tree<T>?, cancellationToken: CancellationToken?): Tree<T>? {
+    if (adjustedTree?.actual == true) {
+      return adjustedTree
+    }
     synchronized(this) {
       SubtreeAccess.unsafe.putLong(this.cancellationFlagPtr, 0)
       cancellationToken?.onCancel {
@@ -192,11 +201,12 @@ data class TSParser<T : NodeType>(val parserPtr: Ptr,
         JSitter.releaseTree(newTreePtr)
         return null
       }
-      return TSTree(newTreePtr,
-                    TSSubtree(
+      return TSTree(treePtr = newTreePtr,
+                    root = TSSubtree(
                       language = this.language,
-                      lifetime = TSTReeResource(newTreePtr),
-                      subtreePtr = SubtreeAccess.root(newTreePtr)))
+                      lifetime = TSTreeResource(newTreePtr),
+                      subtreePtr = SubtreeAccess.root(newTreePtr)),
+                    actual = true)
     }
   }
 }

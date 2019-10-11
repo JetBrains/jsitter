@@ -14,6 +14,7 @@ interface Node<out T : NodeType> {
 interface Tree<T : NodeType> {
     fun adjust(edits: List<Edit>): Tree<T>
     val root: Node<T>
+    val actual: Boolean
 }
 
 interface Zipper<out T : NodeType> {
