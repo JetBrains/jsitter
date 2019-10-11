@@ -141,7 +141,8 @@ data class TSTree<T : NodeType>(val treePtr: Ptr,
   override fun adjust(edits: List<Edit>): Tree<T> {
     if (edits.isEmpty()) {
       return this
-    } else {
+    }
+    else {
       val treeCopy = JSitter.copyTree(this.treePtr)
       for (e in edits) {
         JSitter.editTree(treeCopy, e.startByte, e.oldEndByte, e.newEndByte)
@@ -478,36 +479,34 @@ class TSZipper<T : NodeType>(val parent: TSZipper<*>?,
   }
 
   fun invisibleRight(): TSZipper<*>? {
-    var zip: TSZipper<*> = this
-    while (true) {
-      if (zip.parent == null) {
-        return null
-      }
-      else if (zip.childIndex == SubtreeAccess.childCount(zip.parent!!.node.subtreePtr) - 1) {
-        return null
-      }
-      else {
-        val sibling: Ptr = SubtreeAccess.childAt(zip.parent!!.node.subtreePtr, zip.childIndex + 1)
-        val structuralChildIndex =
-          if (!SubtreeAccess.extra(zip.node.subtreePtr)) {
-            zip.structuralChildIndex + 1
-          }
-          else {
-            zip.structuralChildIndex
-          }
-        val byteOffset = zip.byteOffset + SubtreeAccess.subtreeBytesSize(zip.node.subtreePtr) + SubtreeAccess.subtreeBytesPadding(sibling)
-        val res = TSZipper(
-          parent = zip.parent,
-          parentAliasSequence = zip.parentAliasSequence,
-          node = TSSubtree<NodeType>(
-            subtreePtr = sibling,
-            lifetime = zip.node.lifetime,
-            language = zip.node.language),
-          byteOffset = byteOffset,
-          childIndex = zip.childIndex + 1,
-          structuralChildIndex = structuralChildIndex)
-        return res
-      }
+    val zip: TSZipper<*> = this
+    if (zip.parent == null) {
+      return null
+    }
+    else if (zip.childIndex == SubtreeAccess.childCount(zip.parent.node.subtreePtr) - 1) {
+      return null
+    }
+    else {
+      val sibling: Ptr = SubtreeAccess.childAt(zip.parent.node.subtreePtr, zip.childIndex + 1)
+      val structuralChildIndex =
+        if (!SubtreeAccess.extra(zip.node.subtreePtr)) {
+          zip.structuralChildIndex + 1
+        }
+        else {
+          zip.structuralChildIndex
+        }
+      val byteOffset = zip.byteOffset + SubtreeAccess.subtreeBytesSize(zip.node.subtreePtr) + SubtreeAccess.subtreeBytesPadding(sibling)
+      val res = TSZipper(
+        parent = zip.parent,
+        parentAliasSequence = zip.parentAliasSequence,
+        node = TSSubtree<NodeType>(
+          subtreePtr = sibling,
+          lifetime = zip.node.lifetime,
+          language = zip.node.language),
+        byteOffset = byteOffset,
+        childIndex = zip.childIndex + 1,
+        structuralChildIndex = structuralChildIndex)
+      return res
     }
   }
 
