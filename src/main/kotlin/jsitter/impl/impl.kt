@@ -131,7 +131,7 @@ data class TSSubtree<out T : NodeType>(override val language: TSLanguage<*>,
       parent = null,
       structuralChildIndex = 0,
       parentAliasSequence = 0L,
-      byteOffset = 0,
+      byteOffset = SubtreeAccess.subtreeBytesPadding(this.subtreePtr),
       childIndex = 0)
 }
 
