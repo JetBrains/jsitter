@@ -9,6 +9,7 @@ interface Node<out T : NodeType> {
     val type: T
     val byteSize: Int
     fun zipper(): Zipper<T>
+    val padding: Int
 }
 
 interface Tree<T : NodeType> {
@@ -44,6 +45,7 @@ interface Zipper<out T : NodeType> {
     val byteSize: Int get() = this.node.byteSize
     val alias: NodeType?
     val type: NodeType get() = this.alias ?: this.node.type
+    val padding: Int get() = this.node.padding
 }
 
 data class Edit(val startByte: Int,

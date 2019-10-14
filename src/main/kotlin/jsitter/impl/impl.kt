@@ -125,6 +125,9 @@ data class TSSubtree<out T : NodeType>(override val language: TSLanguage<*>,
   override val byteSize: Int
     get() = SubtreeAccess.subtreeBytesSize(this.subtreePtr)
 
+  override val padding: Int
+    get() = SubtreeAccess.subtreeBytesPadding(this.subtreePtr)
+
   override fun zipper(): Zipper<T> =
     TSZipper(
       node = this,
