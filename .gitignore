@@ -2,6 +2,9 @@
 .projectile
 .idea/
 .vscode/
+.project
+.settings
+.classpath
 target/
 
 CMakeCache.txt
