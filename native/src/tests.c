@@ -1,6 +1,7 @@
 #include <tree_sitter/api.h>
 #include <string.h>
 #include <sys/time.h>
+#include <time.h>
 //#include "java_api.cpp"
 #include <assert.h>
 
