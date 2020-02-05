@@ -118,6 +118,11 @@
                 <directory>
                     native/build/
                 </directory>
+                <includes>
+                    <include>
+                        darwin/libtsgo.dylib
+                    </include>
+                </includes>
             </testResource>
         </testResources>
 

@@ -10,7 +10,7 @@ import java.nio.file.Paths
 object SourceFile : NodeType("source_file")
 
 fun golang(): Language<SourceFile> {
-    val lang = Language.load(SourceFile, "go", "tree_sitter_go", "/libtsgo.dylib", Language::class.java.classLoader)
+    val lang = Language.load(SourceFile, "go", "tree_sitter_go", "libtsgo.dylib", Language::class.java.classLoader)
     lang.register(SourceFile)
     return lang
 }
