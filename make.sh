@@ -1,14 +1,16 @@
 #!/bin/bash
 
-cd "$( dirname "${BASH_SOURCE[0]}" )/"
+cd "$( dirname "${BASH_SOURCE[0]}" )/native"
 
 if [[ "$OSTYPE" == "linux-gnu" ]]; then
-  mkdir -p native/build/linux-x86-64
-  cd native/build/linux-x86-64
+  mkdir -p build/linux-x86-64
+  BUILD_DIR=build/linux-x86-64
 elif [[ "$OSTYPE" == "darwin"* ]]; then
-  mkdir -p native/build/darwin
-  cd native/build/darwin
+  mkdir -p build/darwin
+  BUILD_DIR=build/darwin
 fi
 
-cmake ../..
+cmake -B $BUILD_DIR
+
+cd $BUILD_DIR
 make
